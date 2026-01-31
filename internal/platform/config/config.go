@@ -2,6 +2,8 @@ package config
 
 import (
 	"encoding/json"
+	"os"
+	"strconv"
 	"time"
 )
 
@@ -50,17 +52,17 @@ type ApiConf struct {
 /* konfigurace mqtt - general setting, pouzitelne nasobne */
 type MqttConf struct {
 	Name              string        `json:"conn_name"`                  /* povinne - pojmenovat instanci kterou konnektime, jinak se v tom nevyzname */
-	ConnectUrl        string        `json:"conn_url"`                   /* povinny parameter, connection url je : tcp://[fqdn]:port, nebo ssl://[fqdn]:port */
+	ConnectURL        string        `json:"conn_url"`                   /* povinny parameter, connection url je : tcp://[fqdn]:port, nebo ssl://[fqdn]:port */
 	User              string        `json:"conn_user,omitempty"`        /* muze byt prazdny podud server podporuje anonymni connection */
 	Pass              string        `json:"conn_pass,omitempty"`        /* muze byt prazdny podud server podporuje anonymni connection */
-	ClientId          string        `json:"conn_clientid"`              /* je povinny parametr ke kezde konexi a musi byt unikatni, jinak se nam to bude nekde stekat ! */
-	Topic             string        `json:"conn_topic"`                 /* povinne - topic na subscribe */
-	UseTls            bool          `json:"conn_tls,omitempty"`         /* pokud je zde true, url musi byt ssl:// a resime i tls parametry, jinak je neresime */
-	VerifyTls         bool          `json:"conn_tls_verify,omitempty"`  /* pokud je zde false, vypneme kontrolu certifikatu na ssl vrstve (devel prostredi, nase prostredi se self-sign crt, apod). NEPOUZIVAT V PRODUKCI ! */
-	UseMTls           bool          `json:"conn_mtls,omitempty"`        /* mtls na spojeni ? pokud mame UseTLS a zde je false, neresime vlastni crt a key, pokud je zde true, MUSIME mit vlastni crt a key */
-	CaCrtFile         string        `json:"ca_crt_file,omitempty"`      /* odkud nacteme CA soubor pro spojeni na mqtt */
-	OwnCrtFile        string        `json:"own_crt_file,omitempty"`     /* odkud nacist vlastni crt kdyz mTLS */
-	OwnCrtKeyFile     string        `json:"own_crt_key_file,omitempty"` /* odkud nacist vlastni klic k mTLS */
+	ClientID          string        `json:"conn_clientid"`              /* je povinny parametr ke kezde konexi a musi byt unikatni, jinak se nam to bude nekde stekat ! */
+	Topics            []string      `json:"conn_topic"`                 /* povinne - topics na subscribe */
+	UseTLS            bool          `json:"conn_tls,omitempty"`         /* pokud je zde true, url musi byt ssl:// a resime i tls parametry, jinak je neresime */
+	VerifyTLS         bool          `json:"conn_tls_verify,omitempty"`  /* pokud je zde false, vypneme kontrolu certifikatu na ssl vrstve (devel prostredi, nase prostredi se self-sign crt, apod). NEPOUZIVAT V PRODUKCI ! */
+	UseMTLS           bool          `json:"conn_mtls,omitempty"`        /* mtls na spojeni ? pokud mame UseTLS a zde je false, neresime vlastni crt a key, pokud je zde true, MUSIME mit vlastni crt a key */
+	CaCRTFile         string        `json:"ca_crt_file,omitempty"`      /* odkud nacteme CA soubor pro spojeni na mqtt */
+	OwnCRTFile        string        `json:"own_crt_file,omitempty"`     /* odkud nacist vlastni crt kdyz mTLS */
+	OwnCRTKeyFile     string        `json:"own_crt_key_file,omitempty"` /* odkud nacist vlastni klic k mTLS */
 	ConnectionTimeout time.Duration `json:"conn_timeout,omitempty"`     /* timeout pro spojeni na mqtt, default 5s pokud neni specifikovano jinak */
 	SubscribeTimeout  time.Duration `json:"subs_timeout,omitempty"`     /* timeout pro subscribe na mqtt, default 5s pokud neni specifikovano jinak */
 }
@@ -86,13 +88,13 @@ func NewConfig() *Config {
 	// vytvorime instanci
 	cfg := new(Config)
 	// nahrajeme vychozi hodnoty
-	cfg.LoadDefaults()
+	cfg.ApplyDefaults()
 	// vracime
 	return cfg
 }
 
-// LoadDefaults - nahrajeme vychozi hodnoty do nove struktury
-func (c *Config) LoadDefaults() {
+// ApplyDefaults - nahrajeme vychozi hodnoty do nove struktury
+func (c *Config) ApplyDefaults() {
 	// nejdriv loglevel, default je info, mozno jeste debug/warn/error
 	c.LogLevel = "info"
 	// Vezmeme to postupne, zacneme internimi vecmi jako je queue
@@ -116,18 +118,39 @@ func (c *Config) LoadDefaults() {
 
 	// Interni mqtt server - vychozi hodnoty
 	c.MqttIntern.Name = "Internal"
-	c.MqttIntern.ConnectUrl = "tcp://127.0.0.1:1883"
-	c.MqttIntern.ClientId = "dashboarder_base_0-04"
+	c.MqttIntern.ConnectURL = "tcp://127.0.0.1:1883"
+	c.MqttIntern.ClientID = "dashboarder_base_0-04"
 	c.MqttIntern.User = ""
 	c.MqttIntern.Pass = ""
-	c.MqttIntern.Topic = "/dashboarder/internal"
+	c.MqttIntern.Topics = []string{"/dashboarder/internal"}
 	c.MqttIntern.ConnectionTimeout = 5 * time.Second
 	c.MqttIntern.SubscribeTimeout = 5 * time.Second
-	c.MqttIntern.UseTls = false
-	c.MqttIntern.UseMTls = false
-	c.MqttIntern.VerifyTls = false
+	c.MqttIntern.UseTLS = false
+	c.MqttIntern.UseMTLS = false
+	c.MqttIntern.VerifyTLS = false
 
 	// Input mqtt nastavime prozatim prazdne
 	c.MqttInputs = []MqttConf{}
 
-} // konec LoadDefaults
+} // konec ApplyDefaults
+
+/* nyni implementujeme nacitaci funkce - nejdrive ty pomocne */
+// GetEnvStr - precte string z env a vrati obsah nebo vrati default
+func GetEnvStr(envName string, defval string) string {
+	if val := os.Getenv(envName); val != "" {
+		return val
+	}
+	return defval
+}
+
+// GetEnvInt - precte int a vrati nebo vrati default, nebo 0 kdyz nastane chyba !
+func GetEnvInt(envName string, defval int) int {
+	if val := os.Getenv(envName); val != "" {
+		rval, err := strconv.Atoi(val)
+		if err != nil {
+			return 0
+		}
+		return rval
+	}
+	return defval
+}

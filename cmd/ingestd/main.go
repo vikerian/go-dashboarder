@@ -5,7 +5,7 @@ import (
 	"os"
 
 	//"github.com/vikerian/dashboarder-go/internal/platform/config"
-	"github.com/vikerian/go-dashboarder/internal/platform/config"
+	"github.com/vikerian/dashboarder-go/internal/platform/config"
 
 	// pretty printer please :)
 	"github.com/k0kubun/pp/v3"
@@ -32,6 +32,6 @@ func main() {
 	// instance konfigu
 	conf := config.NewConfig()
 	// prozatim printneme pres pp
-	pp.Print(conf)
+	pp.Printf("%+v\n", conf)
 
 }
