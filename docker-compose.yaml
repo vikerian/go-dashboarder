@@ -1,0 +1,23 @@
+services:
+    mqtt:
+        image: eclipse-mosquitto:2
+        ports:
+            - "1883:1883"
+        volumes:
+            - ./mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+
+    db:
+        image: timescale/timescaledb-ha:pg18
+        environment:
+            POSTGRES_PASSWORD: dashboarder
+            POSTGRES_USER: dashboarder
+            POSTGRES_DB: dashboarder
+            PGDATA: /pgdata
+        ports:
+            - "5432:5432"
+        volumes:
+            - dbdata:/pgdata
+            - ./init.sql:/docker-entrypoint-initdb.d/001_init.sql:ro
+
+volumes:
+    dbdata:
