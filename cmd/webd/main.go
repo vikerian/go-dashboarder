@@ -29,6 +29,7 @@ func main() {
 	defer slog.Info("Dashboarder web application daemon closing...")
 
 	// instance konfigu
-	conf := config.NewConfig()
+	cfg := config.NewConfig()
 	// prozatim printneme pres pp
-	pp.Printf("%+v\n", conf)
+	pp.Printf("%+v\n", cfg)
+}

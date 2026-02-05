@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"os"
 	"strconv"
-	"strings"
 	"time"
 )
 
@@ -48,6 +47,7 @@ type ApiConf struct {
 	ListenPort int    `json:"listen_port"`     /* port kde ma api posloucaht, defaultne 3400/tcp */
 	MaxConn    int    `json:"max_connections"` /* maximalni pocet pripojeni na api, defaultne 25 */
 	Version    string `json:"api_version"`     /* api version , aktualne se bere z constanty programversion v config.go */
+	FileDir    string `json:"file_directory"`  /* pokud api nacita soubory, tak odkud - prozatim vyuzijeme pro mock data soubory typu json */
 }
 
 /* konfigurace mqtt - general setting, pouzitelne nasobne */
@@ -135,9 +135,7 @@ func (c *Config) ApplyDefaults() {
 
 } // konec ApplyDefaults
 
-/* nyni implementujeme nacitaci funkce  */
-
-/* pomocne nacitaci funkce  */
+/* nyni implementujeme nacitaci funkce - nejdrive ty pomocne */
 // GetEnvStr - precte string z env a vrati obsah nebo vrati default
 func GetEnvStr(envName string, defval string) string {
 	if val := os.Getenv(envName); val != "" {
@@ -157,29 +155,3 @@ func GetEnvInt(envName string, defval int) int {
 	}
 	return defval
 }
-
-// getEnvBool načte env bool; pokud není nebo je nevalidní, vrátí default.
-func getEnvBool(key string, def bool) bool { // Helper.
-	v := strings.TrimSpace(os.Getenv(key)) // Načti.
-	if v == "" {                           // Pokud není,
-		return def // default.
-	}
-	b, err := strconv.ParseBool(v) // ParseBool umí true/false/1/0/True/False.
-	if err != nil {                // Pokud parse fail,
-		return def // default.
-	}
-	return b // Vrať.
-} // Konec getEnvBool.
-
-// getEnvDuration načte env duration (např. "5s"); pokud není nebo je nevalidní, vrátí default.
-func getEnvDuration(key string, def time.Duration) time.Duration { // Helper.
-	v := strings.TrimSpace(os.Getenv(key)) // Načti.
-	if v == "" {                           // Pokud není,
-		return def // default.
-	}
-	d, err := time.ParseDuration(v) // ParseDuration.
-	if err != nil {                 // Pokud fail,
-		return def // default.
-	}
-	return d // Vrať.
-} // Konec getEnvDuration.
