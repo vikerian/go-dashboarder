@@ -1,13 +1,11 @@
 package main
 
 import (
+	"fmt"
 	"log/slog"
 	"os"
 
-	"github.com/vikerian/dashboarder-go/internal/config"
-
-	// pretty printer please :)
-	"github.com/k0kubun/pp/v3"
+	"github.com/vikerian/go-dashboarder/internal/config"
 )
 
 /* globalni promenne , aktualne logger protoze pouzijeme slog jako singleton */
@@ -29,7 +27,7 @@ func main() {
 	defer slog.Info("Dashboarder web application daemon closing...")
 
 	// instance konfigu
-	cfg := config.NewConfig()
+	conf := config.NewConfig()
 	// prozatim printneme pres pp
-	pp.Printf("%+v\n", cfg)
+	slog.Debug(fmt.Sprintf("%+v", conf))
 }
