@@ -1,0 +1,33 @@
+FROM golang:1.24-alpine AS builder
+
+# Set environment variables
+ENV CGO_ENABLED=0 \
+    GOOS=linux \
+    GOARCH=arm64
+
+# Set working directory inside the container
+WORKDIR /build
+
+# Copy go.mod and go.sum files for dependency installation
+COPY go.mod go.sum ./
+
+# Download dependencies
+RUN go mod download
+
+# Copy the entire application source
+COPY . .
+
+# build ingestd
+go build -o ingestd cmd/ingestd/main.go
+
+# Final lightweight stage
+FROM alpine:3.21 AS final
+
+# Copy the compiled binary from the builder stage
+COPY --from=builder /app /bin/app
+
+# Expose app port
+EXPOSE ${APP_PORT}
+
+# Run the application
+CMD ["bin/app"]

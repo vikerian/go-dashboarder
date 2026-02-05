@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -134,7 +135,9 @@ func (c *Config) ApplyDefaults() {
 
 } // konec ApplyDefaults
 
-/* nyni implementujeme nacitaci funkce - nejdrive ty pomocne */
+/* nyni implementujeme nacitaci funkce  */
+
+/* pomocne nacitaci funkce  */
 // GetEnvStr - precte string z env a vrati obsah nebo vrati default
 func GetEnvStr(envName string, defval string) string {
 	if val := os.Getenv(envName); val != "" {
@@ -154,3 +157,29 @@ func GetEnvInt(envName string, defval int) int {
 	}
 	return defval
 }
+
+// getEnvBool načte env bool; pokud není nebo je nevalidní, vrátí default.
+func getEnvBool(key string, def bool) bool { // Helper.
+	v := strings.TrimSpace(os.Getenv(key)) // Načti.
+	if v == "" {                           // Pokud není,
+		return def // default.
+	}
+	b, err := strconv.ParseBool(v) // ParseBool umí true/false/1/0/True/False.
+	if err != nil {                // Pokud parse fail,
+		return def // default.
+	}
+	return b // Vrať.
+} // Konec getEnvBool.
+
+// getEnvDuration načte env duration (např. "5s"); pokud není nebo je nevalidní, vrátí default.
+func getEnvDuration(key string, def time.Duration) time.Duration { // Helper.
+	v := strings.TrimSpace(os.Getenv(key)) // Načti.
+	if v == "" {                           // Pokud není,
+		return def // default.
+	}
+	d, err := time.ParseDuration(v) // ParseDuration.
+	if err != nil {                 // Pokud fail,
+		return def // default.
+	}
+	return d // Vrať.
+} // Konec getEnvDuration.

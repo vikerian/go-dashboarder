@@ -4,7 +4,10 @@ services:
         ports:
             - "1883:1883"
         volumes:
-            - ./mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+            - "./mosquitto.conf:/mosquitto/config/mosquitto.conf:ro"
+            - "./mosquitto-data:/mosquitto/data:rw"
+        networks:
+            appnet:
 
     db:
         image: timescale/timescaledb-ha:pg18
@@ -16,8 +19,22 @@ services:
         ports:
             - "5432:5432"
         volumes:
-            - dbdata:/pgdata
-            - ./init.sql:/docker-entrypoint-initdb.d/001_init.sql:ro
+            - "dbdata:/pgdata:rw"
+            - "./init.sql:/docker-entrypoint-initdb.d/001_init.sql:ro"
+        restart: unless-stopped
+        networks:
+            appnet:
+    ingestd:
+        image: vikerian/ingestd:0.04
+        build:
+            dockerfile: ./Dockerfile-ingestd
+            context: .
+            target: dev
+        restart: unless-stopped
+        networks:
+            appnet:
+networks:
+    appnet:
 
 volumes:
     dbdata:

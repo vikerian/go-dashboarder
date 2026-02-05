@@ -24,13 +24,11 @@ func init() {
 /* hlavni funkce */
 func main() {
 	// tak se nejdriv privitame
-	slog.Info("Dashboarder ingest daemon booting up...")
+	slog.Info("Dashboarder web application daemon booting up...")
 	// pro jistotu ukoncovaci info
-	defer slog.Info("Dashboarder ingest daemon closing...")
+	defer slog.Info("Dashboarder web application daemon closing...")
 
 	// instance konfigu
 	conf := config.NewConfig()
 	// prozatim printneme pres pp
 	pp.Printf("%+v\n", conf)
-
-}
