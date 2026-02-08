@@ -1,0 +1,16 @@
+component_name: "ext-mqtt-ingester-weather"
+environment: "development"
+log_level: "debug"
+secret_key: "moje-velmi-bezpecne-heslo-ktere-nikdo-neuhadne"
+
+# Náš interní broker
+mqtt:
+  broker_url: "tcp://localhost:1883"
+  client_id: "ingester-internal-side"
+
+# Externí zdroj dat (např. veřejný testovací broker)
+source_mqtt:
+  broker_url: "tcp://broker.hivemq.com:1883"
+  client_id: "my-unique-ingester-id-123"
+
+source_topic: "vikerian/sensors/data"

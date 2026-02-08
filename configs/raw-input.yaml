@@ -1,0 +1,19 @@
+# Základní nastavení komponenty
+component_name: "raw-socket-ingester"
+environment: "development"
+log_level: "debug"
+
+# Nastavení MQTT (zde bez TLS pro jednoduchost lokálního testu)
+mqtt:
+  broker_url: "tcp://localhost:1883"
+  client_id: "raw-ingester-v1"
+  clean_session: true
+  tls:
+    enabled: false
+
+# Specifické nastavení pro tento modul
+listen_port: 5000
+protocol: "tcp"
+
+# Klíč pro HMAC podpis (pro vývoj klidně slabý, v produkci bude v ENV)
+secret_key: "vychozi-vyvojovy-klic"
