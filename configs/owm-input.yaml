@@ -7,7 +7,7 @@ mqtt:
   broker_url: "tcp://localhost:1883"
   client_id: "owm-ingester-v1"
 
-api_key: "339aae04c89f72dfe14dfac3634b8d23" # Tady vlož svůj klíč
+api_key: "" # Tady vlož svůj klíč
 lat: 50.0755
 lon: 14.4378
 interval_minutes: 10
