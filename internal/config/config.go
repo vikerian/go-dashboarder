@@ -8,6 +8,15 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+type StorageConfig struct {
+	Type     string `yaml:"type" env:"STORAGE_TYPE" envDefault:"mock"`
+	Host     string `yaml:"host" env:"DB_HOST"`
+	Port     int    `yaml:"port" env:"DB_PORT"`
+	User     string `yaml:"user" env:"DB_USER"`
+	Password string `yaml:"password" env:"DB_PASSWORD"`
+	DBName   string `yaml:"dbname" env:"DB_NAME"`
+}
+
 // BaseConfig jsou parametry, které má KAŽDÝ modul v tvém systému.
 // Používáme inline vnoření, aby YAML vypadal čistě.
 type BaseConfig struct {
@@ -18,6 +27,8 @@ type BaseConfig struct {
 	// Každý modul u tebe mluví přes MQTT
 	MQTT      MQTT   `yaml:"mqtt"`
 	SecretKey string `yaml:"secret_key" env:"SECRET_KEY"`
+
+	Storage StorageConfig `yaml:"storage"`
 }
 
 // LoadConfig je "Generic" funkce (to [T any]).

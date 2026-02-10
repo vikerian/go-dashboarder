@@ -2,6 +2,7 @@ package mqtt
 
 import (
 	"fmt"
+	"log/slog"
 	"time"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
@@ -38,9 +39,26 @@ func NewClient(cfg config.MQTT, secretKey string) (*Client, error) {
 		opts.SetTLSConfig(tlsCfg)
 	}
 
-	// LWT - Last Will
+	// Téma pro status modulu
 	statusTopic := fmt.Sprintf("/status/%s", cfg.ClientID)
-	opts.SetWill(statusTopic, `{"status": "offline"}`, 1, false)
+
+	// LWT - Last Will (Broker pošle tuto zprávu, pokud se spojení nečekaně přeruší)
+	// Nastavujeme retain=true, aby noví klienti věděli, že jsme offline.
+	opts.SetWill(statusTopic, `{"status": "offline"}`, 1, true)
+
+	// OnConnectHandler - Tady řešíme "online" zprávu
+	opts.SetOnConnectHandler(func(c mqtt.Client) {
+		slog.Info("MQTT connected", "broker", cfg.BrokerURL, "client_id", cfg.ClientID)
+
+		// Jakmile se připojíme, pošleme "online" status s retain=true
+		token := c.Publish(statusTopic, 1, true, `{"status": "online"}`)
+		token.Wait()
+		slog.Debug("Sent online status", "topic", statusTopic)
+	})
+
+	opts.OnConnectionLost = func(c mqtt.Client, err error) {
+		slog.Warn("MQTT connection lost", "error", err, "client_id", cfg.ClientID)
+	}
 
 	return &Client{
 		MqttClient: mqtt.NewClient(opts),
@@ -49,15 +67,8 @@ func NewClient(cfg config.MQTT, secretKey string) (*Client, error) {
 	}, nil
 }
 
-// SetOnConnect nám dovolí definovat, co se stane po každém úspěšném spojení.
-func (c *Client) SetOnConnect(handler func(mqtt.Client)) {
-	// Musíme to nastavit v Options předtím, než zavoláme Connect(),
-	// nebo (pokud už běžíme) musíme použít interní mechanismy Paho.
-	// Pro jednoduchost to teď nastavujeme přímo v main přes Paho Options
-	// nebo zde v rámci našeho wrapperu.
-}
-
 func (c *Client) Connect() error {
+	slog.Debug("Connecting to MQTT broker", "url", c.cfg.BrokerURL)
 	token := c.MqttClient.Connect()
 	if token.Wait() && token.Error() != nil {
 		return token.Error()
@@ -66,5 +77,8 @@ func (c *Client) Connect() error {
 }
 
 func (c *Client) Disconnect() {
+	// Při slušném odpojení bys technicky mohla poslat "offline" ručně,
+	// ale LWT se postará o nečekané pády.
 	c.MqttClient.Disconnect(250)
+	slog.Info("MQTT disconnected", "client_id", c.cfg.ClientID)
 }

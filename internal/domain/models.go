@@ -24,6 +24,16 @@ type RawMessage struct {
 	Payload []byte `json:"payload"`
 }
 
+// IoTData představuje normalizovaný záznam pro IoT senzory.
+// Tuto strukturu vyrábí IoT Parser a posílá ji do /data/iot.
+type IoTData struct {
+	DeviceID  string    `json:"device_id"`
+	Metric    string    `json:"metric"` // např. "temperature", "humidity"
+	Value     float64   `json:"value"`
+	Unit      string    `json:"unit"`      // např. "°C", "%"
+	Timestamp time.Time `json:"timestamp"` // Čas normalizace/měření
+}
+
 // WebData po revizi
 type WebData struct {
 	ID        string    `json:"id"` // Odkaz na původní RawMessage ID

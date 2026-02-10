@@ -1,0 +1,8 @@
+component_name: "iot-parser-service"
+environment: "development"
+log_level: "debug"
+secret_key: "moje-velmi-bezpecne-heslo-ktere-nikdo-neuhadne" # Klíč pro ověření HMAC
+
+mqtt:
+  broker_url: "tcp://localhost:1883"
+  client_id: "iot-parser-v1"

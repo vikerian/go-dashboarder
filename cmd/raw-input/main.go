@@ -43,6 +43,7 @@ func main() {
 		"component", cfg.ComponentName,
 		"port", cfg.ListenPort,
 	)
+	slog.Info("MQTT Konfigurace", "url", cfg.MQTT.BrokerURL, "client_id", cfg.MQTT.ClientID)
 
 	// 3. PŘÍPRAVA MQTT KLIENTA
 	// Používáme náš platformní wrapper, který v sobě má i HMAC a TLS.

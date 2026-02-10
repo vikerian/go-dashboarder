@@ -31,3 +31,13 @@ go.work.sum
 # .idea/
 # .vscode/
 ./mosquitto-data/*
+
+./pgsql-data/*
+
+# Ignoruj lokální nastavení s hesly
+.env
+
+# Ignoruj binárky a logy
+*.log
+bin/
+service

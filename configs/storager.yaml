@@ -1,0 +1,19 @@
+component_name: "storager-service"
+environment: "development"
+log_level: "debug"
+secret_key: "moje-velmi-bezpecne-heslo-ktere-nikdo-neuhadne" # Musí být stejné jako u Ingesteru a Parseru
+
+mqtt:
+  broker_url: "tcp://localhost:1883"
+  client_id: "storager-master-v1"
+  clean_session: false # Pro storager je lepší false, aby mu neutekly zprávy při restartu
+
+#storage:
+#type: "mock" # Tady naše Factory pozná, že má použít MockStorage
+storage:
+  type: "timescaledb"
+  host: "localhost"
+  port: 5432
+  user: "admin"
+  password: "secret"
+  dbname: "dashboarder"

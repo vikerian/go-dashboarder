@@ -1,0 +1,12 @@
+component_name: "weather-prague"
+environment: "development"
+log_level: "info"
+secret_key: "moje-velmi-bezpecne-heslo-ktere-nikdo-neuhadne" # Musí být stejné jako u Parseru!
+
+mqtt:
+  broker_url: "tcp://localhost:1883"
+  client_id: "weather-ingester"
+
+lat: 50.0755
+lon: 14.4378
+interval_minutes: 5

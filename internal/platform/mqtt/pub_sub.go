@@ -43,3 +43,29 @@ func (c *Client) SubscribeRawMessage(topic string, handler func(domain.RawMessag
 	token.Wait()
 	return token.Error()
 }
+
+// PublishIoTData posílá už normalizovaná IoT data do systému.
+func (c *Client) PublishIoTData(topic string, data domain.IoTData) error {
+	payload, err := json.Marshal(data)
+	if err != nil {
+		return err
+	}
+
+	// Tady už nepoužíváme HMAC, protože se pohybujeme v "bezpečné" vnitřní zóně /data/
+	// Ale pokud bys chtěla, můžeš i zde použít RawMessage obálku.
+	token := c.MqttClient.Publish(topic, 1, false, payload)
+	token.Wait()
+	return token.Error()
+}
+
+// PublishWebData posílá normalizovaná webová data (z Open-Meteo, RSS, atd.)
+func (c *Client) PublishWebData(topic string, data domain.WebData) error {
+	payload, err := json.Marshal(data)
+	if err != nil {
+		return err
+	}
+
+	token := c.MqttClient.Publish(topic, 1, false, payload)
+	token.Wait()
+	return token.Error()
+}
