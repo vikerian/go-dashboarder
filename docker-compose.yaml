@@ -109,3 +109,17 @@ services:
         condition: service_healthy
       mosquitto:
         condition: service_started
+
+  # --- grafana ---
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${DB_PASSWORD}
+    volumes:
+      - "./grafana-data:/var/lib/grafana:rw"
+    depends_on:
+      - timescale
+
