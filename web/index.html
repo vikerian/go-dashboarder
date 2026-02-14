@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="cs">
+    <head>
+        <meta charset="UTF-8" />
+        <title>RPi Local Dashboard</title>
+        <script src="/static/chart.min.js"></script>
+        <style>
+            body {
+                font-family: sans-serif;
+                background: #121212;
+                color: white;
+                margin: 40px;
+            }
+            .chart-container {
+                background: #1e1e1e;
+                padding: 20px;
+                border-radius: 12px;
+            }
+        </style>
+    </head>
+    <body>
+        <h1>System Status (Local)</h1>
+        <div id="status">Připojuji se k API...</div>
+        <div class="chart-container">
+            <canvas id="iotChart"></canvas>
+        </div>
+
+        <script>
+            /**
+             * JS PRŮVODCE PRO GOPHERY:
+             * const = 'const' v Go (neměnné)
+             * function = 'func'
+             * async/await = Způsob, jak čekat na výsledek (jako kdyby kanál v Go vrátil hodnotu)
+             * fetch = něco jako http.Get()
+             */
+
+            // Cesta k API - v Caddy to budeme mít na stejném portu,
+            // takže stačí relativní cesta bez localhost:8080
+            const API_URL = "/api/v1/latest?limit=50";
+            //const API_URL = "http://localhost:8080/api/v1/latest?limit=50";
+
+            // 1. Inicializace grafu (vytvoříme prázdný objekt Chart)
+            const ctx = document.getElementById("iotChart").getContext("2d");
+            const myChart = new Chart(ctx, {
+                type: "line",
+                data: { datasets: [] }, // Na začátku nemáme žádné čáry (datasets)
+                options: {
+                    scales: {
+                        x: {
+                            grid: { color: "#333" },
+                            ticks: { color: "#888" },
+                        },
+                        y: {
+                            grid: { color: "#333" },
+                            ticks: { color: "#888" },
+                        },
+                    },
+                },
+            });
+
+            // 2. Funkce pro načtení dat (obdoba tvojí smyčky v Ingesteru)
+            async function refreshData() {
+                try {
+                    // fetch() pošle požadavek a vrátí 'Promise' (příslib hodnoty)
+                    // await říká: "počkej, až se to vrátí" (v Go by to bylo blokující volání)
+                    const response = await fetch(API_URL);
+
+                    // .json() je obdoba json.Unmarshal().
+                    // JavaScript nepotřebuje definovat strukturu (struct), prostě to "rozbalí" do objektu.
+                    const data = await response.json();
+
+                    if (!data || data.length === 0) return;
+
+                    // MAPOVÁNÍ DAT (jako Go Map)
+                    // Musíme data z databáze (pole objektů) rozdělit do skupin podle 'metric' (ds1, ds2...)
+                    const series = {};
+
+                    data.forEach((entry) => {
+                        const name = entry.metric;
+                        if (!series[name]) {
+                            // Pokud tuhle metriku vidíme poprvé, vytvoříme jí "dataset" (čáru v grafu)
+                            series[name] = {
+                                label: name,
+                                data: [], // Pole bodů [ {x, y}, {x, y} ]
+                                borderColor:
+                                    name === "ds1" ? "#00ff00" : "#ff00ff",
+                                tension: 0.3,
+                            };
+                        }
+                        // Přidáme bod: x je čas (vytáhneme jen HH:MM:SS), y je hodnota
+                        series[name].data.push({
+                            x: entry.timestamp.substring(11, 19),
+                            y: entry.value,
+                        });
+                    });
+
+                    // Převedeme naši "Mapu" na "Slice" (pole), aby to Chart.js mohl přečíst
+                    // Object.values() vytáhne jen ty definice čar
+                    myChart.data.datasets = Object.values(series);
+
+                    // API nám vrací nejnovější data nahoře, ale graf kreslíme zleva doprava (staré -> nové)
+                    // Takže každou čáru musíme otočit (reverse)
+                    myChart.data.datasets.forEach((ds) => ds.data.reverse());
+
+                    // Příkaz ke překreslení grafu na obrazovce
+                    myChart.update("none"); // 'none' vypne animace pro vyšší rychlost
+
+                    document.getElementById("status").innerText =
+                        "Update: " + new Date().toLocaleTimeString();
+                } catch (err) {
+                    document.getElementById("status").innerText =
+                        "Chyba API: " + err.message;
+                }
+            }
+
+            // Spustíme hned
+            refreshData();
+
+            // A pak periodicky (v Go by to byl time.Ticker)
+            setInterval(refreshData, 5000);
+        </script>
+    </body>
+</html>

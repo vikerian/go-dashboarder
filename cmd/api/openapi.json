@@ -1,0 +1,42 @@
+{
+    "openapi": "3.0.0",
+    "info": {
+        "title": "Go Dashboarder API",
+        "version": "1.0.0"
+    },
+    "paths": {
+        "/api/v1/latest": {
+            "get": {
+                "summary": "Získá posledních 20 událostí",
+                "responses": {
+                    "200": {
+                        "description": "Seznam IoT dat",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/IoTData"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "components": {
+        "schemas": {
+            "IoTData": {
+                "type": "object",
+                "properties": {
+                    "metric": { "type": "string" },
+                    "value": { "type": "number" },
+                    "unit": { "type": "string" },
+                    "timestamp": { "type": "string", "format": "date-time" }
+                }
+            }
+        }
+    }
+}

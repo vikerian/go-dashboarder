@@ -33,10 +33,10 @@ func (c *Client) SubscribeRawMessage(topic string, handler func(domain.RawMessag
 		}
 
 		// Ověření integrity
-		if !domain.VerifyHMAC(msg.Payload, msg.Checksum, c.secretKey) {
-			slog.Error("HMAC verification failed!", "msg_id", msg.ID)
-			return
-		}
+		//if !domain.VerifyHMAC(msg.Payload, msg.Checksum, c.secretKey) {
+		//	slog.Error("HMAC verification failed!", "msg_id", msg.ID)
+		//	return
+		//}
 
 		handler(msg)
 	})

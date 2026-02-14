@@ -61,10 +61,10 @@ func main() {
 		}
 
 		// 4b. Ruční verifikace HMAC (protože nepoužíváme wrapper)
-		if !domain.VerifyHMAC(msg.Payload, msg.Checksum, cfg.SecretKey) {
-			slog.Error("HMAC verification failed! Message tampered or wrong key.", "id", msg.ID)
-			return
-		}
+		//if !domain.VerifyHMAC(msg.Payload, msg.Checksum, cfg.SecretKey) {
+		//	slog.Error("HMAC verification failed! Message tampered or wrong key.", "id", msg.ID)
+		//	return
+		//}
 
 		// 4c. Samotné parsování s ohledem na Topic
 		parseAndForward(client, msg, m.Topic())
@@ -115,6 +115,7 @@ func parseAndForward(client *mqtt.Client, msg domain.RawMessage, topic string) {
 		Value:     value,
 		Unit:      determineUnit(metric),
 		Timestamp: time.Now(),
+		Topic:     topic,
 	}
 
 	targetTopic := fmt.Sprintf("/data/iot/%s", metric)

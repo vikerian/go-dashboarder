@@ -17,15 +17,12 @@ type StorageConfig struct {
 	DBName   string `yaml:"dbname" env:"DB_NAME"`
 }
 
-// BaseConfig jsou parametry, které má KAŽDÝ modul v tvém systému.
-// Používáme inline vnoření, aby YAML vypadal čistě.
 type BaseConfig struct {
 	ComponentName string `yaml:"component_name" env:"COMPONENT_NAME"`
 	Environment   string `yaml:"environment" env:"ENV" envDefault:"development"`
 	LogLevel      string `yaml:"log_level" env:"LOG_LEVEL" envDefault:"info"`
 
-	// Každý modul u tebe mluví přes MQTT
-	MQTT      MQTT   `yaml:"mqtt"`
+	MQTT      MQTT   `yaml:"mqtt"` // Teď už Go ví, co je to za typ
 	SecretKey string `yaml:"secret_key" env:"SECRET_KEY"`
 
 	Storage StorageConfig `yaml:"storage"`

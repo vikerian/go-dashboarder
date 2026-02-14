@@ -1,0 +1,63 @@
+{{define "content"}}
+<h1>Stav systému</h1>
+<div class="card">
+    <table style="width: 100%; border-collapse: collapse">
+        <thead>
+            <tr style="border-bottom: 2px solid #333; text-align: left">
+                <th style="padding: 10px">Služba</th>
+                <th style="padding: 10px">Stav</th>
+                <th style="padding: 10px">Naposledy viděn</th>
+            </tr>
+        </thead>
+        <tbody id="health-table"></tbody>
+    </table>
+</div>
+
+<script>
+    // Tady si definuj komponenty, které chceš sledovat
+    const SERVICES = [
+        "raw-ingester",
+        "mqtt-inputer",
+        "weather-ingester-docker",
+        "iot-parser-docker",
+        "storage-master-v1",
+    ];
+
+    function init() {
+        const tbody = document.getElementById("health-table");
+        tbody.innerHTML = SERVICES.map(
+            (s) => `
+        <tr id="row-${s}" style="border-bottom: 1px solid #222;">
+            <td style="padding: 10px;">${s}</td>
+            <td class="status" style="padding: 10px; color: #555;">UNKNOWN</td>
+            <td class="time" style="padding: 10px; color: #444;">--:--:--</td>
+        </tr>
+    `,
+        ).join("");
+    }
+
+    async function refresh() {
+        try {
+            const res = await fetch("/api/v1/health-status");
+            const data = await res.json();
+
+            data.forEach((c) => {
+                const row = document.getElementById(`row-${c.name}`);
+                if (row) {
+                    row.querySelector(".status").innerText = c.status;
+                    row.querySelector(".status").style.color =
+                        c.status === "OK" ? "#00e676" : "#ff5252";
+                    row.querySelector(".time").innerText =
+                        c.last_seen.substring(11, 19);
+                }
+            });
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
+    init();
+    refresh();
+    setInterval(refresh, 5000);
+</script>
+{{end}}

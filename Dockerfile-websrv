@@ -1,0 +1,32 @@
+# FÁZE 1: Kompilace Go kódu
+FROM golang:1.24-alpine AS builder
+WORKDIR /app
+# Kopírujeme go.mod a go.sum pro stažení závislostí
+COPY go.mod go.sum ./
+RUN go mod download
+# Kopírujeme zbytek zdrojáků
+COPY . .
+# Kompilujeme frontend server
+RUN go build -o frontend-server cmd/frontend/main.go
+
+# FÁZE 2: Finální obraz (lehký a čistý)
+FROM alpine:latest
+RUN apk add --no-cache curl
+WORKDIR /app
+
+# Vytvoříme strukturu složek, kterou Go kód očekává
+RUN mkdir -p web/static web/templates
+
+# Stáhneme Chart.js (UMD verze pro čisté HTML bez importů)
+RUN curl -L https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js -o web/static/chart.min.js
+
+# KOPÍROVÁNÍ BINÁRKY
+COPY --from=builder /app/frontend-server .
+
+# KOPÍROVÁNÍ ŠABLON - Tohle je ta klíčová změna!
+# Kopírujeme celý obsah lokální složky web/templates do kontejneru
+COPY web/templates/ ./web/templates/
+
+# Exponujeme port 80
+EXPOSE 80
+CMD ["./frontend-server"]

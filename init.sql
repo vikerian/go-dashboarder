@@ -18,3 +18,10 @@ SELECT create_hypertable('events', 'ts', if_not_exists => TRUE);
 CREATE INDEX IF NOT EXISTS events_topic_ts_idx ON events (topic, ts DESC);
 CREATE INDEX IF NOT EXISTS events_source_ts_idx ON events (source, ts DESC);
 CREATE INDEX IF NOT EXISTS events_kind_ts_idx ON events (kind, ts DESC);
+
+CREATE TABLE IF NOT EXISTS component_health (
+    name TEXT PRIMARY KEY,
+    status TEXT NOT NULL,         -- 'OK', 'ERROR'
+    last_seen TIMESTAMPTZ NOT NULL,
+    message TEXT
+);

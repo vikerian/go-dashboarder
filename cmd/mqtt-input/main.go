@@ -66,6 +66,7 @@ func bridgeMessage(local *internalMqtt.Client, msg paho.Message, componentName s
 		IngestedAt: time.Now(),
 		ReceivedAt: time.Now(),
 		Payload:    msg.Payload(),
+		Topic:      msg.Topic(),
 	}
 
 	// Pošleme to do našeho vnitřního systému (metoda PublishRawMessage přidá HMAC!)

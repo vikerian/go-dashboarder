@@ -22,6 +22,9 @@ type RawMessage struct {
 
 	// Samotná data - stále v []byte pro maximální flexibilitu a výkon
 	Payload []byte `json:"payload"`
+
+	// u mqtt
+	Topic string `json:"topic,omitempty"`
 }
 
 // IoTData představuje normalizovaný záznam pro IoT senzory.
@@ -32,6 +35,7 @@ type IoTData struct {
 	Value     float64   `json:"value"`
 	Unit      string    `json:"unit"`      // např. "°C", "%"
 	Timestamp time.Time `json:"timestamp"` // Čas normalizace/měření
+	Topic     string    `json:"topic"`
 }
 
 // WebData po revizi
@@ -45,4 +49,12 @@ type WebData struct {
 	// Metadata jsou nyní typově bezpečnější pro transport
 	// json.RawMessage zachová bajty, dokud je nebudeme chtít parsovat konkrétně
 	Metadata json.RawMessage `json:"metadata,omitempty"`
+}
+
+// ComponentHealth reprezentuje jeden řádek v tabulce component_health
+type ComponentHealth struct {
+	Name     string    `json:"name"`
+	Status   string    `json:"status"`
+	LastSeen time.Time `json:"last_seen"`
+	Message  string    `json:"message"`
 }

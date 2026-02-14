@@ -1,84 +1,77 @@
 package mqtt
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"time"
 
-	mqtt "github.com/eclipse/paho.mqtt.golang"
+	paho "github.com/eclipse/paho.mqtt.golang"
+	// POZOR: Tato cesta musí odpovídat tvému go.mod!
 	"github.com/vikerian/go-dashboarder/internal/config"
 )
 
-// Client je náš robustní wrapper nad Paho MQTT.
+// Client obaluje paho MQTT klienta
 type Client struct {
-	MqttClient mqtt.Client
-	cfg        config.MQTT
-	secretKey  string
+	MqttClient  paho.Client
+	StatusTopic string
+	ClientID    string
+	cfg         config.MQTT
+	secretKey   string
 }
 
-// NewClient vytvoří novou instanci, ale ještě se nepřipojuje.
+// NewClient - Tady Go hledá config.MQTTConfig
 func NewClient(cfg config.MQTT, secretKey string) (*Client, error) {
-	opts := mqtt.NewClientOptions()
-	opts.AddBroker(cfg.BrokerURL)
-	opts.SetClientID(cfg.ClientID)
-	opts.SetUsername(cfg.Username)
-	opts.SetPassword(cfg.Password)
-	opts.SetCleanSession(cfg.CleanSession)
+	opts := paho.NewClientOptions().
+		AddBroker(cfg.BrokerURL).
+		SetClientID(cfg.ClientID).
+		SetCleanSession(true).
+		SetAutoReconnect(true)
 
-	// Resilience nastavení
-	opts.SetAutoReconnect(true)
-	opts.SetMaxReconnectInterval(1 * time.Minute)
-	opts.SetConnectRetry(true)
-
-	// TLS
-	tlsCfg, err := cfg.TLS.ToTLSConfig()
-	if err != nil {
-		return nil, err
-	}
-	if tlsCfg != nil {
-		opts.SetTLSConfig(tlsCfg)
-	}
-
-	// Téma pro status modulu
+	// Nastavení LWT (Poslední vůle)
 	statusTopic := fmt.Sprintf("/status/%s", cfg.ClientID)
+	opts.SetWill(statusTopic, "dead", 1, true)
 
-	// LWT - Last Will (Broker pošle tuto zprávu, pokud se spojení nečekaně přeruší)
-	// Nastavujeme retain=true, aby noví klienti věděli, že jsme offline.
-	opts.SetWill(statusTopic, `{"status": "offline"}`, 1, true)
-
-	// OnConnectHandler - Tady řešíme "online" zprávu
-	opts.SetOnConnectHandler(func(c mqtt.Client) {
-		slog.Info("MQTT connected", "broker", cfg.BrokerURL, "client_id", cfg.ClientID)
-
-		// Jakmile se připojíme, pošleme "online" status s retain=true
-		token := c.Publish(statusTopic, 1, true, `{"status": "online"}`)
-		token.Wait()
-		slog.Debug("Sent online status", "topic", statusTopic)
-	})
-
-	opts.OnConnectionLost = func(c mqtt.Client, err error) {
-		slog.Warn("MQTT connection lost", "error", err, "client_id", cfg.ClientID)
-	}
+	c := paho.NewClient(opts)
 
 	return &Client{
-		MqttClient: mqtt.NewClient(opts),
-		cfg:        cfg,
-		secretKey:  secretKey,
+		MqttClient:  c,
+		StatusTopic: statusTopic,
+		ClientID:    cfg.ClientID,
 	}, nil
 }
 
+// Connect se pokusí o připojení a pošle úvodní "alive" status
 func (c *Client) Connect() error {
 	slog.Debug("Connecting to MQTT broker", "url", c.cfg.BrokerURL)
 	token := c.MqttClient.Connect()
 	if token.Wait() && token.Error() != nil {
 		return token.Error()
 	}
+	// Pošleme retained zprávu, že jsme online
+	c.MqttClient.Publish(c.StatusTopic, 1, true, "alive")
 	return nil
 }
 
+// StartHeartbeat periodicky posílá pípnutí do MQTT
+func (c *Client) StartHeartbeat(ctx context.Context, interval time.Duration) {
+	go func() {
+		ticker := time.NewTicker(interval)
+		defer ticker.Stop()
+
+		for {
+			select {
+			case <-ticker.C:
+				c.MqttClient.Publish(c.StatusTopic, 0, false, "heartbeat")
+			case <-ctx.Done():
+				c.MqttClient.Publish(c.StatusTopic, 1, true, "offline")
+				return
+			}
+		}
+	}()
+}
+
 func (c *Client) Disconnect() {
-	// Při slušném odpojení bys technicky mohla poslat "offline" ručně,
-	// ale LWT se postará o nečekané pády.
 	c.MqttClient.Disconnect(250)
 	slog.Info("MQTT disconnected", "client_id", c.cfg.ClientID)
 }
