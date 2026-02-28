@@ -1,171 +1,166 @@
 services:
-    # --- INFRASTRUKTURA ---
-    timescale:
-        image: timescale/timescaledb:latest-pg18
-        container_name: timescale_db
-        environment:
-            - POSTGRES_USER=${DB_USER}
-            - POSTGRES_PASSWORD=${DB_PASSWORD}
-            - POSTGRES_DB=${DB_NAME}
-        healthcheck:
-            test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
-            interval: 5s
-            timeout: 5s
-            retries: 5
-        ports:
-            - "5432:5432"
-        volumes:
-            - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+  # --- INFRASTRUKTURA ---
+  timescale:
+    image: timescale/timescaledb:latest-pg18
+    container_name: timescale_db
+    environment:
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=${DB_NAME}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
 
-    mosquitto:
-        image: eclipse-mosquitto:latest
-        container_name: mqtt_broker
-        ports:
-            - "1883:1883"
-        volumes:
-            - ./mosquitto.conf:/mosquitto/config/mosquitto.conf
+  mqtt_broker:
+    image: eclipse-mosquitto:latest
+    container_name: mqtt_broker
+    ports:
+      - "1883:1883"
+    volumes:
+      - ./mosquitto.conf:/mosquitto/config/mosquitto.conf
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z localhost 1883"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s # Allow time for Mosquitto to start
 
-    # --- INGESTERY ---
-    raw-ingester:
-        build:
-            context: .
-            args:
-                - MODULE_PATH=cmd/raw-input
-        environment:
-            - MQTT_CLIENT_ID=raw-ingester
-            - MQTT_URL=${MQTT_BROKER_URL}
-            - RAW_LISTEN_PORT=6000
-            - SECRET_KEY=${SECRET_KEY}
-            - LOG_LEVEL=${LOG_LEVEL}
-        ports:
-            - "6000:6000"
-        depends_on:
-            - mosquitto
+  # --- INGESTERY ---
+  raw-ingester:
+    build:
+      context: .
+      args:
+        - MODULE_PATH=cmd/raw-input
+    environment:
+      - MQTT_CLIENT_ID=raw-ingester
+      - MQTT_URL=${MQTT_BROKER_URL}
+      - RAW_LISTEN_PORT=6000
+      - SECRET_KEY=${SECRET_KEY}
+      - LOG_LEVEL=${LOG_LEVEL}
+    ports:
+      - "6000:6000"
+    depends_on:
+      - mqtt_broker
 
-    mqtt-ingester:
-        build:
-            context: .
-            args:
-                - MODULE_PATH=cmd/mqtt-input
-        environment:
-            - MQTT_URL=${MQTT_BROKER_URL}
-            - MQTT_CLIENT_ID=mqtt-inputer
-            - SOURCE_MQTT_URL=${SOURCE_MQTT_URL}
-            - SOURCE_MQTT_CLIENT_ID=mqtt-inputer-input
-            - SOURCE_TOPIC=${SOURCE_MQTT_TOPIC}
-            - SECRET_KEY=${SECRET_KEY}
+  mqtt-ingester:
+    build:
+      context: .
+      args:
+        - MODULE_PATH=cmd/mqtt-input
+    environment:
+      - MQTT_URL=${MQTT_BROKER_URL}
+      - MQTT_CLIENT_ID=mqtt-inputer
+      - SOURCE_MQTT_URL=${SOURCE_MQTT_URL}
+      - SOURCE_MQTT_CLIENT_ID=mqtt-inputer-input
+      - SOURCE_TOPIC=${SOURCE_MQTT_TOPIC}
+      - SECRET_KEY=${SECRET_KEY}
+    depends_on:
+      - mqtt_broker
 
-    weather-ingester:
-        build:
-            context: .
-            args:
-                - MODULE_PATH=cmd/openmeteo-input
-        environment:
-            - MQTT_CLIENT_ID=weather-ingester-docker
-            - MQTT_URL=${MQTT_BROKER_URL}
-            - SECRET_KEY=${SECRET_KEY}
-        depends_on:
-            - mosquitto
+  weather-ingester:
+    build:
+      context: .
+      args:
+        - MODULE_PATH=cmd/openmeteo-input
+    environment:
+      - MQTT_CLIENT_ID=weather-ingester-docker
+      - MQTT_URL=${MQTT_BROKER_URL}
+      - SECRET_KEY=${SECRET_KEY}
+    depends_on:
+      - mqtt_broker
 
-    api:
-        build:
-            context: .
-            args:
-                - MODULE_PATH=cmd/api
-        container_name: api
-        ports:
-            - "8080:8080"
-        environment:
-            - MQTT_CLIENT_ID=api
-            - MQTT_URL=${MQTT_BROKER_URL}
-            - SECRET_KEY=${SECRET_KEY}
-            - STORAGE_TYPE=timescaledb
-            - DB_HOST=timescale
-            - DB_PORT=5432
-            - DB_USER=${DB_USER}
-            - DB_PASSWORD=${DB_PASSWORD}
-            - DB_NAME=${DB_NAME}
-            - COMPONENT_NAME=api-service
-            - LOG_LEVEL=debug
-            - CONFIG_PATH=configs/api.yaml
-        depends_on:
-            timescale:
-                condition: service_healthy
-            mosquitto:
-                condition: service_healthy
+  api:
+    build:
+      context: .
+      args:
+        - MODULE_PATH=cmd/api
+    container_name: api
+    ports:
+      - "8080:8080"
+    environment:
+      - MQTT_CLIENT_ID=api
+      - MQTT_URL=${MQTT_BROKER_URL}
+      - SECRET_KEY=${SECRET_KEY}
+      - STORAGE_TYPE=timescaledb
+      - DB_HOST=timescale
+      - DB_PORT=5432
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_NAME=${DB_NAME}
+      - COMPONENT_NAME=api-service
+      - LOG_LEVEL=debug
+      - CONFIG_PATH=configs/api.yaml
+    depends_on:
+      timescale:
+        condition: service_healthy
+      mqtt_broker:
+        condition: service_healthy
 
-    # --- PARSERY ---
-    iot-parser:
-        build:
-            context: .
-            args:
-                - MODULE_PATH=cmd/iot-parser
-        environment:
-            - MQTT_CLIENT_ID=iot-parser-docker
-            - MQTT_URL=${MQTT_BROKER_URL}
-            - SECRET_KEY=${SECRET_KEY}
-            - mosquitto
+  # --- PARSERY ---
+  iot-parser:
+    build:
+      context: .
+      args:
+        - MODULE_PATH=cmd/iot-parser
+    environment:
+      - MQTT_CLIENT_ID=iot-parser-docker
+      - MQTT_URL=${MQTT_BROKER_URL}
+      - SECRET_KEY=${SECRET_KEY}
+      - mqtt_broker
 
-    web-parser:
-        build:
-            context: .
-            args:
-                - MODULE_PATH=cmd/web-parser
-        environment:
-            - MQTT_CLIENT_ID=web-parser-docker
-            - MQTT_URL=${MQTT_BROKER_URL}
-            - SECRET_KEY=${SECRET_KEY}
-        depends_on:
-            - mosquitto
+  web-parser:
+    build:
+      context: .
+      args:
+        - MODULE_PATH=cmd/web-parser
+    environment:
+      - MQTT_CLIENT_ID=web-parser-docker
+      - MQTT_URL=${MQTT_BROKER_URL}
+      - SECRET_KEY=${SECRET_KEY}
+    depends_on:
+      - mqtt_broker
 
-    # --- STORAGE ---
-    storager:
-        build:
-            context: .
-            args:
-                - MODULE_PATH=cmd/storager
-        environment:
-            - MQTT_URL=${MQTT_BROKER_URL}
-            - DB_HOST=timescale
-            - DB_USER=${DB_USER}
-            - DB_PASSWORD=${DB_PASSWORD}
-            - DB_NAME=${DB_NAME}
-            - STORAGE_TYPE=timescaledb
-            - SECRET_KEY=${SECRET_KEY}
-        depends_on:
-            timescale:
-                condition: service_healthy
-            mosquitto:
-                condition: service_started
+  # --- STORAGE ---
+  storager:
+    build:
+      context: .
+      args:
+        - MODULE_PATH=cmd/storager
+    environment:
+      - MQTT_URL=${MQTT_BROKER_URL}
+      - DB_HOST=timescale
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_NAME=${DB_NAME}
+      - STORAGE_TYPE=timescaledb
+      - SECRET_KEY=${SECRET_KEY}
+    depends_on:
+      timescale:
+        condition: service_healthy
+      mqtt_broker:
+        condition: service_started
 
-    # --- grafana ---
-    #grafana:
-    #    image: grafana/grafana:latest
-    #    container_name: grafana
-    #    ports:
-    #        - "3000:3000"
-    #    environment:
-    #        - GF_SECURITY_ADMIN_PASSWORD=${DB_PASSWORD}
-    #    volumes:
-    #        - "./grafana-data:/var/lib/grafana:rw"
-    #    depends_on:
-    #        - timescale
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile-websrv
+    container_name: dashboarder_ui
+    environment:
+      - LOG_LEVEL=info
 
-    frontend:
-        build:
-            context: .
-            dockerfile: Dockerfile-websrv
-        container_name: dashboarder_ui
-        environment:
-            - LOG_LEVEL=info
-
-    caddy:
-        image: caddy:latest
-        container_name: reverse_proxy
-        ports:
-            - "80:80"
-        volumes:
-            - ./Caddyfile:/etc/caddy/Caddyfile
-        depends_on:
-            - frontend
-            - api
+  caddy:
+    image: caddy:latest
+    container_name: reverse_proxy
+    ports:
+      - "80:80"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+    depends_on:
+      - frontend
+      - api
