@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"os"
@@ -25,6 +26,7 @@ func main() {
 	logger.Setup(cfg.LogLevel, cfg.ComponentName, true)
 
 	// 2. Inicializace MQTT klienta (s tvým opraveným NewClientem)
+	slog.Info("mqtt connection", "parameters", slog.StringValue(fmt.Sprintf("%+v", cfg)))
 	mqttClient, err := mqtt.NewClient(cfg.MQTT, cfg.SecretKey)
 	if err != nil {
 		slog.Error("MQTT init failed", "err", err)

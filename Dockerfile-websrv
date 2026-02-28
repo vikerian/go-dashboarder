@@ -20,13 +20,15 @@ RUN mkdir -p web/static web/templates
 # Stáhneme Chart.js (UMD verze pro čisté HTML bez importů)
 RUN curl -L https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js -o web/static/chart.min.js
 
+RUN mkdir -p {/app,/app/web,/app/web/templates,/app/web/static} && cd /app
+
 # KOPÍROVÁNÍ BINÁRKY
 COPY --from=builder /app/frontend-server .
 
 # KOPÍROVÁNÍ ŠABLON - Tohle je ta klíčová změna!
 # Kopírujeme celý obsah lokální složky web/templates do kontejneru
-COPY web/templates/ ./web/templates/
+COPY web/templates/ /app/web/templates/
 
-# Exponujeme port 80
-EXPOSE 80
+# Exponujeme port 8180
+EXPOSE 8180
 CMD ["./frontend-server"]

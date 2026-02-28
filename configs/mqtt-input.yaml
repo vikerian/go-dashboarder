@@ -5,12 +5,12 @@ secret_key: "moje-velmi-bezpecne-heslo-ktere-nikdo-neuhadne"
 
 # Náš interní broker
 mqtt:
-  broker_url: "tcp://localhost:1883"
-  client_id: "in-intern"
+    broker_url: "tcp://localhost:1883"
+    client_id: "in-intern"
 
 # Externí zdroj dat (např. veřejný testovací broker)
 source_mqtt:
-  broker_url: "tcp://mqtt.portabo.cz:1883"
-  client_id: "vik_project"
+    broker_url: "tcp://localhost:1883"
+    client_id: "vik_project"
 
 source_topic: "vikerian/sensors/data"

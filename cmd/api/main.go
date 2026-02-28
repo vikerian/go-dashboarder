@@ -46,9 +46,15 @@ func main() {
 		if err := mqttClient.Connect(); err != nil {
 			slog.Error("MQTT Connection failed - API is BLIND to status messages", "err", err)
 		} else {
+			// 3. SPUŠTĚNÍ HEARTBEATU
+			// Tohle zajistí, že v Health tabulce uvidíš "OK" místo "UNKNOWN"
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+			mqttClient.StartHeartbeat(ctx, 30*time.Second)
+
 			// REGISTRACE ODBĚRU
-			token := mqttClient.MqttClient.Subscribe("/status/#", 1, func(c paho.Client, m paho.Message) {
-				comp := strings.TrimPrefix(m.Topic(), "/status/")
+			token := mqttClient.MqttClient.Subscribe("status/#", 1, func(c paho.Client, m paho.Message) {
+				comp := strings.TrimPrefix(m.Topic(), "status/")
 				payload := string(m.Payload())
 
 				// TADY TO MUSÍŠ VIDĚT V LOGU!
@@ -56,7 +62,7 @@ func main() {
 				hManager.OnMessageReceived(comp, payload)
 			})
 			token.Wait()
-			slog.Info("MQTT Subscription active for /status/#")
+			slog.Info("MQTT Subscription active for status/#")
 		}
 	}
 

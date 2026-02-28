@@ -29,7 +29,7 @@ func NewClient(cfg config.MQTT, secretKey string) (*Client, error) {
 		SetAutoReconnect(true)
 
 	// Nastavení LWT (Poslední vůle)
-	statusTopic := fmt.Sprintf("/status/%s", cfg.ClientID)
+	statusTopic := fmt.Sprintf("status/%s", cfg.ClientID)
 	opts.SetWill(statusTopic, "dead", 1, true)
 
 	c := paho.NewClient(opts)

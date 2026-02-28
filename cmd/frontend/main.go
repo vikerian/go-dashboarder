@@ -29,9 +29,9 @@ func main() {
 	mux := http.NewServeMux()
 
 	// 1. STATICKÉ SOUBORY (JS, CSS)
-	// Servíruje soubory z ./web/static pod URL cestou /static/
-	fs := http.FileServer(http.Dir("./web/static"))
-	mux.Handle("/static/", http.StripPrefix("/static/", fs))
+	// Servíruje soubory z /app/web/static pod URL cestou /static/
+	fs := http.FileServer(http.Dir("/app/web/static"))
+	mux.Handle("/static/", http.StripPrefix("/app/static/", fs))
 
 	// 2. HLAVNÍ ROUTER PRO ŠABLONY
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
@@ -42,7 +42,7 @@ func main() {
 		}()
 
 		// Seznam stránek pro dynamické menu
-		pages := getAvailablePages("./web/templates")
+		pages := getAvailablePages("/app/web/templates")
 
 		// Očištění cesty: z "/facts" uděláme "facts"
 		requestedPath := strings.TrimPrefix(r.URL.Path, "/")
@@ -81,10 +81,10 @@ func main() {
 		}
 	})
 
-	slog.Info("Portál připraven", "port", 80, "templates", "./web/templates")
+	slog.Info("Portál připraven", "port", 8180, "templates", "/app/web/templates")
 
 	server := &http.Server{
-		Addr:         ":80",
+		Addr:         ":8180",
 		Handler:      mux,
 		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 10 * time.Second,

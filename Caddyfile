@@ -1,8 +1,8 @@
-:80 {
-    # Použijeme 'reverse_proxy' přímo s filtrem cesty.
-    # To zajistí, že se nic NESTŘÍHÁ.
-    reverse_proxy /api/* api:8080
+:3800 {
+	# Použijeme 'reverse_proxy' přímo s filtrem cesty.
+	# To zajistí, že se nic NESTŘÍHÁ.
+	reverse_proxy /api/* api:8080
 
-    # Všechno ostatní pošli na frontend
-    reverse_proxy frontend:80
+	# Všechno ostatní pošli na frontend
+	reverse_proxy frontend:8180
 }

@@ -51,6 +51,12 @@ func main() {
 	}
 	defer client.Disconnect()
 
+	// 3. SPUŠTĚNÍ HEARTBEATU
+	// Tohle zajistí, že v Health tabulce uvidíš "OK" místo "UNKNOWN"
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	client.StartHeartbeat(ctx, 30*time.Second)
+
 	// 4. ODBĚR DAT - Používáme přímo MqttClient, abychom viděli Topic
 	token := client.MqttClient.Subscribe("/input/#", 1, func(c paho.Client, m paho.Message) {
 		// 4a. Rozbalíme naši obálku RawMessage
