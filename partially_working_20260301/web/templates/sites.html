@@ -1,0 +1,67 @@
+{{define "content"}}
+<h1>📡 Aktivní zdroje dat</h1>
+<div class="card">
+    <p>Aktuální přehled všech komponent, které posílají data do systému.</p>
+    <table style="width: 100%; border-collapse: collapse; margin-top: 20px">
+        <thead>
+            <tr style="text-align: left; border-bottom: 2px solid #333">
+                <th style="padding: 10px">Zdroj (Source)</th>
+                <th style="padding: 10px">Poslední hodnota</th>
+                <th style="padding: 10px">Čas (Last Seen)</th>
+            </tr>
+        </thead>
+        <tbody id="sites-table"></tbody>
+    </table>
+</div>
+
+<script>
+    /**
+     * JS VYSVĚTLIVKY PRO GOPHERA:
+     * new Map() = funguje stejně jako map[string]Type v Go.
+     * template literals (zápis s ` `) = umožňují vkládat proměnné přímo do stringu pomocí ${}.
+     */
+    async function loadSites() {
+        try {
+            // Vyžádáme si posledních 50 záznamů bez ohledu na kind
+            const res = await fetch("/api/v1/latest?limit=50");
+            const data = await res.json();
+
+            // Chceme pro každý unikátní zdroj (Source) zobrazit jen ten nejnovější záznam
+            const latestBySource = new Map();
+
+            data.forEach((item) => {
+                // Pokud už zdroj v mapě máme, přeskočíme ho (protože data jsou od nejnovějších)
+                if (!latestBySource.has(item.device_id)) {
+                    latestBySource.set(item.device_id, item);
+                }
+            });
+
+            const tableBody = document.getElementById("sites-table");
+            tableBody.innerHTML = ""; // Vyčistit tabulku
+
+            // Projdeme naši mapu a vytvoříme řádky tabulky
+            latestBySource.forEach((val, key) => {
+                const row = `
+                <tr style="border-bottom: 1px solid #222;">
+                    <td style="padding: 15px;">
+                        <span style="color:var(--accent)">●</span> ${key}
+                    </td>
+                    <td style="padding: 15px;">${val.value} ${val.unit}</td>
+                    <td style="padding: 15px; color: #666;">
+                        ${val.timestamp.substring(11, 19)}
+                    </td>
+                </tr>
+            `;
+                tableBody.innerHTML += row;
+            });
+        } catch (err) {
+            console.error("Chyba při načítání zdrojů:", err);
+        }
+    }
+
+    // Spustíme hned
+    loadSites();
+    // Aktualizujeme každých 10 sekund
+    setInterval(loadSites, 10000);
+</script>
+{{end}}

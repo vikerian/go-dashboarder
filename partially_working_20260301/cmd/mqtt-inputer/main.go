@@ -19,7 +19,7 @@ import (
 )
 
 func main() {
-	cfg, _ := config.LoadConfig[config.MqttIngesterConfig]("configs/mqtt-input.yaml")
+	cfg, _ := config.LoadConfig[config.MqttIngesterConfig]("configs/mqtt-inputer.yaml")
 	logger.Setup(cfg.LogLevel, cfg.ComponentName, true)
 
 	// 1. NAŠ VNITŘNÍ KLIENT (na RPi #2)
@@ -32,6 +32,11 @@ func main() {
 		slog.Error("Failed to connect local MQTT", "err", err)
 		os.Exit(1)
 	}
+
+	// Tohle zajistí, že v Health tabulce uvidíš "OK" místo "UNKNOWN"
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	localClient.StartHeartbeat(ctx, 30*time.Second)
 
 	// 2. EXTERNÍ KLIENT (Zdroj - RPi #1)
 	sourceOpts := paho.NewClientOptions().
@@ -70,7 +75,7 @@ func bridgeMessage(local *internalMqtt.Client, msg paho.Message, componentName s
 	}
 
 	// Pošleme to do našeho vnitřního systému (metoda PublishRawMessage přidá HMAC!)
-	targetTopic := fmt.Sprintf("/input/mqtt/%s", msg.Topic())
+	targetTopic := fmt.Sprintf("input/mqtt/%s", msg.Topic())
 	if err := local.PublishRawMessage(targetTopic, raw); err != nil {
 		slog.Error("Bridge failed to forward message", "err", err)
 	} else {

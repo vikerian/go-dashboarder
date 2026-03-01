@@ -58,7 +58,7 @@ func main() {
 	client.StartHeartbeat(ctx, 30*time.Second)
 
 	// 4. ODBĚR DAT - Používáme přímo MqttClient, abychom viděli Topic
-	token := client.MqttClient.Subscribe("/input/#", 1, func(c paho.Client, m paho.Message) {
+	token := client.MqttClient.Subscribe("input/#", 1, func(c paho.Client, m paho.Message) {
 		// 4a. Rozbalíme naši obálku RawMessage
 		var msg domain.RawMessage
 		if err := json.Unmarshal(m.Payload(), &msg); err != nil {
@@ -102,7 +102,7 @@ func parseAndForward(client *mqtt.Client, msg domain.RawMessage, topic string) {
 		metric = strings.TrimSpace(parts[0])
 		valueStr = strings.TrimSpace(parts[1])
 	} else {
-		// Příklad: /input/mqtt/tinycontrol/teplota_venku -> metric = "teplota_venku"
+		// Příklad: input/mqtt/tinycontrol/teplota_venku -> metric = "teplota_venku"
 		topicParts := strings.Split(topic, "/")
 		metric = topicParts[len(topicParts)-1]
 		valueStr = strings.TrimSpace(rawContent)
@@ -124,7 +124,7 @@ func parseAndForward(client *mqtt.Client, msg domain.RawMessage, topic string) {
 		Topic:     topic,
 	}
 
-	targetTopic := fmt.Sprintf("/data/iot/%s", metric)
+	targetTopic := fmt.Sprintf("data/iot/%s", metric)
 	if err := client.PublishIoTData(targetTopic, normalized); err != nil {
 		slog.Error("Failed to publish", "metric", metric, "error", err)
 	} else {

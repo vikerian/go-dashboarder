@@ -52,8 +52,14 @@ func main() {
 	}
 	defer client.Disconnect()
 
-	// Odebíráme vše z /input/web/#
-	client.MqttClient.Subscribe("/input/web/#", 1, func(c paho.Client, m paho.Message) {
+	// 3. SPUŠTĚNÍ HEARTBEATU
+	// Tohle zajistí, že v Health tabulce uvidíš "OK" místo "UNKNOWN"
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	client.StartHeartbeat(ctx, 30*time.Second)
+
+	// Odebíráme vše z input/web/#
+	client.MqttClient.Subscribe("input/web/#", 1, func(c paho.Client, m paho.Message) {
 		var raw domain.RawMessage
 		if err := json.Unmarshal(m.Payload(), &raw); err != nil {
 			return

@@ -59,6 +59,12 @@ func main() {
 	}
 	defer mqttClient.Disconnect() // Slušné vychování – zavřít spojení při konci.
 
+	// 3. SPUŠTĚNÍ HEARTBEATU
+	// Tohle zajistí, že v Health tabulce uvidíš "OK" místo "UNKNOWN"
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	mqttClient.StartHeartbeat(ctx, 30*time.Second)
+
 	// 4. SPUŠTĚNÍ TCP SERVERU
 	// Nasloucháme na portu definovaném v konfiguraci.
 	addr := fmt.Sprintf(":%d", cfg.ListenPort)
@@ -139,7 +145,7 @@ func handleConnection(ctx context.Context, conn net.Conn, mqttClient *mqtt.Clien
 
 		// 7. ODESLÁNÍ DO SYSTÉMU
 		// Používáme náš topic hierarchy: /input/raw/[jmeno_modulu]
-		topic := fmt.Sprintf("/input/raw/%s", cfg.ComponentName)
+		topic := fmt.Sprintf("input/raw/%s", cfg.ComponentName)
 
 		// PublishRawMessage v sobě automaticky spočítá HMAC podpis z Payloadu.
 		if err := mqttClient.PublishRawMessage(topic, msg); err != nil {

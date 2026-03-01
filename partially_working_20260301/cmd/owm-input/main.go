@@ -106,7 +106,7 @@ func fetchAndPublish(cfg *config.OpenWeatherConfig, mqttClient *mqtt.Client) {
 	}
 
 	// Publikování do interního systému
-	topic := fmt.Sprintf("/input/web/%s", cfg.ComponentName)
+	topic := fmt.Sprintf("input/web/%s", cfg.ComponentName)
 	if err := mqttClient.PublishRawMessage(topic, raw); err != nil {
 		slog.Error("Failed to publish OWM data", "error", err)
 	} else {

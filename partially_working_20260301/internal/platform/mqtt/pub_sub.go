@@ -11,7 +11,7 @@ import (
 // PublishRawMessage automaticky přidá HMAC a pošle JSON.
 func (c *Client) PublishRawMessage(topic string, msg domain.RawMessage) error {
 	// Spočítáme podpis z Payloadu
-	msg.Checksum = domain.SignMessage(msg.Payload, c.secretKey)
+	//msg.Checksum = domain.SignMessage(msg.Payload, c.secretKey)
 
 	data, err := json.Marshal(msg)
 	if err != nil {

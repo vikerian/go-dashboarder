@@ -58,12 +58,12 @@ services:
         networks:
             appnet:
 
-    mqtt-ingester:
+    mqtt-inputer:
         build:
             context: .
             args:
-                - MODULE_PATH=cmd/mqtt-input
-        container_name: mqtt-ingester
+                - MODULE_PATH=cmd/mqtt-inputer
+        container_name: mqtt-inputer
         environment:
             - MQTT_URL=${MQTT_BROKER_URL}
             - MQTT_CLIENT_ID=mqtt-inputer

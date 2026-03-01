@@ -1,4 +1,4 @@
-component_name: "ext-mqtt-ingester-weather"
+component_name: "ext-mqtt-ingester"
 environment: "development"
 log_level: "debug"
 secret_key: "moje-velmi-bezpecne-heslo-ktere-nikdo-neuhadne"
