@@ -44,3 +44,6 @@
   - pro jednotlive typy dat budeme mit v jednotlivych ulozistich jednotny enum (referencni tabulku)
     - aktualne zamyslena tabulka typu dat (napisu to sem v postgresql):
       - CREATE TABLE datatype(id serial not null, dtype varchar(32), primary key(id))
+
+## Poznamka ##
+*Ne, opravdu ani ve vyvoji nepouzivam ty vychozi hodnoty co tu lze nalezt, ty jsou ciste generovany nahodne a i ve vyvoji je pretezuji pres .env soubor. Doporucuji kazdemu to same ;)*
