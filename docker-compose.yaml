@@ -1,0 +1,66 @@
+networks:
+    appnet:
+
+volumes:
+    data:
+
+services:
+    mqtt:
+        image: eclipse-mosquitto:latest
+        container_name: mqtt
+        ports:
+            - "${MQTT_PORT}:1883"
+        volumes:
+            - ./mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+        restart: always
+        healthcheck:
+            test: ["CMD-SHELL", "nc -z localhost 1883"]
+            interval: 30s
+            timeout: 10s
+            retries: 3
+            start_period: 10s # Allow time for Mosquitto to start
+        networks:
+            appnet:
+
+    timescaledb:
+        image: timescale/timescaledb:latest-pg18
+        container_name: timescaledb
+        environment:
+            POSTGRES_USER: ${POSTGRES_USER}
+            POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+            POSTGRES_DB: ${POSTGRES_DB}
+        ports:
+            - "5432:5432"
+        volumes:
+            - ./data/timescaledb:/var/lib/postgresql/data
+        restart: always
+        healthcheck:
+            test:
+                [
+                    "CMD-SHELL",
+                    "pg_isready -U ${POSTGRES_USER} && psql -U ${POSTGRES_USER} -d ${POSTGRES_DB} -c 'SELECT 1'",
+                ]
+            interval: 5s
+            timeout: 5s
+            retries: 5
+
+        networks:
+            appnet:
+
+    valkey:
+        image: valkey/valkey:latest
+        container_name: valkeydb
+        command: ["valkey-server", "--requirepass", "${VALKEY_PASSWORD}"]
+        ports:
+            - "${VALKEY_PORT}:6379"
+        volumes:
+            - ./data/valkey:/data
+        restart: always
+        healthcheck:
+            test: ["CMD", "valkey-cli", "-a", "${VALKEY_PASSWORD}", "ping"]
+            interval: 10s
+            timeout: 5s
+            retries: 3
+            start_period: 5s
+        networks:
+            appnet:

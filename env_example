@@ -1,0 +1,13 @@
+# .env.example
+
+# Mosquitto
+MQTT_PORT=1883
+
+# TimescaleDB (PostgreSQL 18)
+POSTGRES_USER=admin
+POSTGRES_PASSWORD=supersecretpassword
+POSTGRES_DB=dashboarder
+
+# ValkeyDB (Redis-compatible)
+VALKEY_PORT=6379
+VALKEY_PASSWORD=valkeypassword

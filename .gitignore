@@ -43,3 +43,5 @@ bin/
 service
 
 grafana-data/*
+
+data/*
