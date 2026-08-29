@@ -3,6 +3,7 @@ package main
 import (
 	"html/template"
 	"log/slog"
+	"mime"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -11,6 +12,12 @@ import (
 
 	"github.com/vikerian/go-dashboarder/internal/logger"
 )
+
+func init() {
+	// Explicitní registrace MIME typů před spuštěním serveru
+	mime.AddExtensionType(".js", "application/javascript")
+	mime.AddExtensionType(".css", "text/css")
+}
 
 // Page definuje položku v bočním menu
 type Page struct {
@@ -29,9 +36,11 @@ func main() {
 	mux := http.NewServeMux()
 
 	// 1. STATICKÉ SOUBORY (JS, CSS)
-	// Servíruje soubory z /app/web/static pod URL cestou /static/
-	fs := http.FileServer(http.Dir("/app/web/static"))
-	mux.Handle("/static/", http.StripPrefix("/app/static/", fs))
+	// Servíruje soubory z web/static pod URL cestou /static/
+	// Relativní cesta funguje jak lokálně (spuštěno z kořene repa), tak
+	// v kontejneru (WORKDIR /app v Dockerfile-websrv).
+	fs := http.FileServer(http.Dir("web/static"))
+	mux.Handle("/static/", http.StripPrefix("/static/", fs))
 
 	// 2. HLAVNÍ ROUTER PRO ŠABLONY
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
@@ -42,7 +51,7 @@ func main() {
 		}()
 
 		// Seznam stránek pro dynamické menu
-		pages := getAvailablePages("/app/web/templates")
+		pages := getAvailablePages("web/templates")
 
 		// Očištění cesty: z "/facts" uděláme "facts"
 		requestedPath := strings.TrimPrefix(r.URL.Path, "/")
@@ -81,7 +90,7 @@ func main() {
 		}
 	})
 
-	slog.Info("Portál připraven", "port", 8180, "templates", "/app/web/templates")
+	slog.Info("Portál připraven", "port", 8180, "templates", "web/templates")
 
 	server := &http.Server{
 		Addr:         ":8180",

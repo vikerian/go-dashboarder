@@ -95,14 +95,15 @@ func fetchAndPublish(client *mqtt.Client) {
 		Metric:    "temperature",
 		Value:     result.CurrentWeather.Temperature,
 		Unit:      "°C",
-		Topic:     "/data/weather",
+		Topic:     "/data/iot/weather",
 	}
 
 	payload, _ := json.Marshal(data)
 
-	// Publikujeme do MQTT. Storager to zachytí a uloží do DB.
+	// Publikujeme do MQTT. Storager odebírá "/data/iot/#" a data uloží do DB
+	// jako IoT záznam (weather-ingester posílá stejný domain.IoTData tvar).
 	// Používáme QoS 1 pro spolehlivost.
-	token := client.MqttClient.Publish("/data/weather", 1, false, payload)
+	token := client.MqttClient.Publish("/data/iot/weather", 1, false, payload)
 	token.Wait()
 
 	slog.Info("Open-Meteo data successfully ingested", "temp", result.CurrentWeather.Temperature)

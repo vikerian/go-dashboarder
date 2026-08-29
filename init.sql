@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS events (
   kind      TEXT        NULL,
   key       TEXT        NULL,
   payload   JSONB       NOT NULL,
-  -- Tady je ta změna: kompozitní klíč
+  -- kompozitní klíč
   PRIMARY KEY (id, ts)
 );
 

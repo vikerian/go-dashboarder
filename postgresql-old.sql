@@ -20,7 +20,7 @@ CREATE TABLE sensor_types (
 );
 
 -- Seed data (pro ukázku)
-INSERT INTO sensor_types (name, unit, description) VALUES 
+INSERT INTO sensor_types (name, unit, description) VALUES
 ('temperature', '°C', 'Teplota vzduchu'),
 ('humidity', '%', 'Relativní vlhkost'),
 ('pressure', 'hPa', 'Atmosférický tlak'),
@@ -66,7 +66,7 @@ CREATE TABLE sensor_group_memberships (
     id SERIAL PRIMARY KEY,
     group_id INTEGER NOT NULL REFERENCES sensor_groups(id) ON DELETE CASCADE,
     sensor_id INTEGER NOT NULL REFERENCES sensors(id) ON DELETE CASCADE,
-    added_at TIMESTAMPTZ DEFAULT NOW(),
+    added_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 
@@ -86,8 +86,8 @@ CREATE TABLE sensor_data (
 -- Převedení běžné tabulky na HYPERTABLE
 -- Toto je ta magie TimescaleDB. Data se fyzicky dělí do "chunks" podle času.
 SELECT create_hypertable(
-    'sensor_data', 
-    'time', 
+    'sensor_data',
+    'time',
     chunk_time_interval => INTERVAL '1 day',
     if_not_exists => TRUE
 );
@@ -161,12 +161,12 @@ ALTER TABLE sensor_types ADD COLUMN min_value DOUBLE PRECISION;
 ALTER TABLE sensor_types ADD COLUMN max_value DOUBLE PRECISION;
 
 -- Příklad: nastavení limitů pro typ senzoru 'temperature' (předpokládáme ID=1)
-UPDATE sensor_types SET min_value = -30.0, max_value = 80.0 
+UPDATE sensor_types SET min_value = -30.0, max_value = 80.0
 WHERE name = 'temperature';
 
 -- pridani system-monitoru
 -- 1. Nové typy měření
-INSERT INTO sensor_types (name, unit, description, min_value, max_value) VALUES 
+INSERT INTO sensor_types (name, unit, description, min_value, max_value) VALUES
 ('cpu_load', '%', 'Zátěž procesoru', 0, 100),
 ('ram_usage', 'MB', 'Využití paměti', 0, 64000), -- RPi má max 8GB, ale rezerva
 ('disk_usage', 'GB', 'Využití disku', 0, 10000)
@@ -174,7 +174,7 @@ ON CONFLICT DO NOTHING;
 
 -- 2. Registrace virtuálních senzorů (Topic -> ID)
 -- Tady definujeme mapování pro MQTT zprávy, které bude náš monitor posílat.
-INSERT INTO sensors (sensor_type_id, mqtt_topic, friendly_name, is_active) VALUES 
+INSERT INTO sensors (sensor_type_id, mqtt_topic, friendly_name, is_active) VALUES
 -- CPU
 ((SELECT id FROM sensor_types WHERE name = 'cpu_load'), '/msh/system/cpu', 'System CPU Load', true),
 -- RAM
@@ -184,7 +184,7 @@ INSERT INTO sensors (sensor_type_id, mqtt_topic, friendly_name, is_active) VALUE
 ((SELECT id FROM sensor_types WHERE name = 'disk_usage'), '/msh/system/disk_used', 'Root Disk Used', true);
 
 -- Registrace senzorů pro CELKOVOU kapacitu
-INSERT INTO sensors (sensor_type_id, mqtt_topic, friendly_name, is_active) VALUES 
+INSERT INTO sensors (sensor_type_id, mqtt_topic, friendly_name, is_active) VALUES
 -- RAM Total
 ((SELECT id FROM sensor_types WHERE name = 'ram_usage'), '/msh/system/ram_total', 'System RAM Total', true),
 -- Disk Total

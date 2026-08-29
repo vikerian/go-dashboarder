@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/vikerian/go-dashboarder/internal/config"
 	"github.com/vikerian/go-dashboarder/internal/domain"
@@ -50,6 +51,11 @@ func main() {
 		os.Exit(1)
 	}
 	defer client.Disconnect()
+
+	// Tohle zajistí, že v Health tabulce uvidíš "OK" místo "UNKNOWN"
+	hbCtx, hbCancel := context.WithCancel(context.Background())
+	defer hbCancel()
+	client.StartHeartbeat(hbCtx, 30*time.Second)
 
 	// 4. Odebírání dat
 	// Přístup k MqttClient (což je surový Paho klient) vyžaduje typy z paho

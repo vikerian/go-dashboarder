@@ -124,7 +124,7 @@ func parseAndForward(client *mqtt.Client, msg domain.RawMessage, topic string) {
 		Topic:     topic,
 	}
 
-	targetTopic := fmt.Sprintf("data/iot/%s", metric)
+	targetTopic := fmt.Sprintf("/data/iot/%s", metric)
 	if err := client.PublishIoTData(targetTopic, normalized); err != nil {
 		slog.Error("Failed to publish", "metric", metric, "error", err)
 	} else {
@@ -134,7 +134,9 @@ func parseAndForward(client *mqtt.Client, msg domain.RawMessage, topic string) {
 
 func determineUnit(metric string) string {
 	m := strings.ToLower(metric)
-	if strings.Contains(m, "temp") || strings.Contains(m, "teplota") {
+	// ds1/ds2 jsou DS18B20 čidla bridgovaná z /msh/internal_temp - jméno
+	// metriky je jen ID senzoru, takže "temp"/"teplota" v něm nenajdeme.
+	if strings.Contains(m, "temp") || strings.Contains(m, "teplota") || m == "ds1" || m == "ds2" {
 		return "°C"
 	}
 	if strings.Contains(m, "hum") || strings.Contains(m, "vlhkost") {

@@ -42,6 +42,16 @@ go.work.sum
 bin/
 service
 
+# Výstup build.sh
+_release/
+
 grafana-data/*
 
 data/*
+
+# Pracovní zálohy souborů (viz konvence v README) - nejsou pro commit
+*.backup[0-9]*_[0-9]*
+
+# Chart.js se stahuje za buildu (Dockerfile-websrv) / při lokálním vývoji,
+# není to náš kód
+web/static/

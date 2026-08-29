@@ -1,114 +1,59 @@
-// Package config zajišťuje jednotný přístup k nastavení všech mikroslužeb.
-// Používá výhradně standardní Go knihovny, aby byl kompatibilní
-// s jakýmkoliv prostředím (Docker/K8s/Bare metal).
 package config
 
 import (
+	"fmt"
 	"os"
-	"strconv"
-	"strings"
+
+	"github.com/caarlos0/env/v10"
+	"gopkg.in/yaml.v3"
 )
 
-// RootConfig je hlavní struktura, kterou načítají všechny komponenty.
-type RootConfig struct {
-	ComponentName string
-	LogLevel      string
-
-	// MQTT je univerzální nastavení pro jakékoliv MQTT spojení.
-	MQTT MQTTConfig
-
-	// APIConfig pro interní HTTP/gRPC servery.
-	API APIConfig
-
-	// WebConfig pro frontendy (dashboardy).
-	Web WebConfig
+type StorageConfig struct {
+	Type     string `yaml:"type" env:"STORAGE_TYPE" envDefault:"mock"`
+	Host     string `yaml:"host" env:"DB_HOST"`
+	Port     int    `yaml:"port" env:"DB_PORT"`
+	User     string `yaml:"user" env:"DB_USER"`
+	Password string `yaml:"password" env:"DB_PASSWORD"`
+	DBName   string `yaml:"dbname" env:"DB_NAME"`
 }
 
-type MQTTConfig struct {
-	URL                string
-	Username           string
-	Password           string
-	UseTLS             bool
-	CAFile             string
-	CertFile           string
-	KeyFile            string
-	InsecureSkipVerify bool // "DevOps Switch" pro self-signed/expired certy
+type BaseConfig struct {
+	ComponentName string `yaml:"component_name" env:"COMPONENT_NAME"`
+	Environment   string `yaml:"environment" env:"ENV" envDefault:"development"`
+	LogLevel      string `yaml:"log_level" env:"LOG_LEVEL" envDefault:"info"`
+
+	MQTT      MQTT   `yaml:"mqtt"` // Teď už Go ví, co je to za typ
+	SecretKey string `yaml:"secret_key" env:"SECRET_KEY"`
+
+	Storage StorageConfig `yaml:"storage"`
 }
 
-type APIConfig struct {
-	Port      int
-	Timeout   int // v sekundách
-	AuthToken string
-}
+// LoadConfig je "Generic" funkce (to [T any]).
+// Umožňuje nám načíst jakoukoliv strukturu, která "rozšiřuje" BaseConfig.
+func LoadConfig[T any](path string) (*T, error) {
+	// Vytvoříme novou instanci typu T
+	cfg := new(T)
 
-type WebConfig struct {
-	Port       int
-	Timeout    int
-	StaticPath string
-	EnableAuth bool
-	Username   string
-	Password   string
-}
+	// 1. Krok: Zkusíme načíst YAML soubor (pokud existuje)
+	// YAML je skvělý pro výchozí hodnoty a lokální vývoj.
+	if _, err := os.Stat(path); err == nil {
+		file, err := os.Open(path)
+		if err != nil {
+			return nil, fmt.Errorf("failed to open config: %w", err)
+		}
+		defer file.Close()
 
-// Load načte veškerou konfiguraci z environmentálních proměnných.
-// V Kubernetes budou tyto proměnné definovány v Deployment manifestu.
-func Load() RootConfig {
-	return RootConfig{
-		ComponentName: getEnv("COMPONENT_NAME", "go-service"),
-		LogLevel:      getEnv("LOG_LEVEL", "info"),
-
-		MQTT: MQTTConfig{
-			URL:                getEnv("MQTT_URL", "tcp://localhost:1883"),
-			Username:           getEnv("MQTT_USER", ""),
-			Password:           getEnv("MQTT_PASS", ""),
-			UseTLS:             getEnvBool("MQTT_USE_TLS", false),
-			CAFile:             getEnv("MQTT_CA_FILE", ""),
-			CertFile:           getEnv("MQTT_CERT_FILE", ""),
-			KeyFile:            getEnv("MQTT_KEY_FILE", ""),
-			InsecureSkipVerify: getEnvBool("MQTT_INSECURE_SKIP_VERIFY", false),
-		},
-
-		API: APIConfig{
-			Port:      getEnvInt("API_PORT", 3800),
-			Timeout:   getEnvInt("API_TIMEOUT", 30),
-			AuthToken: getEnv("API_AUTH_TOKEN", "K8zHbUMC/FgVBhvCYLIRziyZUMg3z880U0qXpZscDSgJ"),
-		},
-
-		Web: WebConfig{
-			Port:       getEnvInt("WEB_PORT", 8080),
-			Timeout:    getEnvInt("WEB_TIMEOUT", 30),
-			StaticPath: getEnv("WEB_STATIC_PATH", "./web/dist"),
-			EnableAuth: getEnvBool("WEB_ENABLE_AUTH", true),
-			Username:   getEnv("WEB_USERNAME", "viewer"),
-			Password:   getEnv("WEB_PASSWORD", "FlAqOBjVCAr@cMMUF2c4Z7S#j3iSKzIFcRoYvLCc78Vl"),
-		},
+		if err := yaml.NewDecoder(file).Decode(cfg); err != nil {
+			return nil, fmt.Errorf("failed to decode yaml: %w", err)
+		}
 	}
-}
 
-// --- Pomocné funkce pro typové načítání ---
+	// 2. Krok: Přepíšeme hodnoty z Environment Variables.
+	// V Dockeru/Kubernetes je toto klíčové. ENV má vždy přednost před souborem.
+	// Knihovna 'env' projde strukturu a hledá tagy `env:"..."`.
+	if err := env.Parse(cfg); err != nil {
+		return nil, fmt.Errorf("failed to parse environment variables: %w", err)
+	}
 
-func getEnv(key, fallback string) string {
-	if val, ok := os.LookupEnv(key); ok {
-		return val
-	}
-	return fallback
-}
-
-func getEnvBool(key string, fallback bool) bool {
-	val := strings.ToLower(os.Getenv(key))
-	if val == "true" || val == "1" || val == "yes" {
-		return true
-	}
-	if val == "false" || val == "0" || val == "no" {
-		return false
-	}
-	return fallback
-}
-
-func getEnvInt(key string, fallback int) int {
-	val := os.Getenv(key)
-	if i, err := strconv.Atoi(val); err == nil {
-		return i
-	}
-	return fallback
+	return cfg, nil
 }

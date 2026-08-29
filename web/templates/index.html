@@ -40,6 +40,13 @@
                 );
 
                 // 2. SESKUPOVÁNÍ PODLE UNIKÁTNÍHO KLÍČE (ID + Metrika)
+                // Společný, chronologicky seřazený seznam štítků pro osu X.
+                // Bez tohohle si Chart.js kategorie skládá v pořadí, v jakém
+                // narazí na jednotlivé datasety (ne podle času), takže osa
+                // pak skáče v čase tam a zpátky a řídké datasety (např.
+                // počasí) skončí namačkané mimo své skutečné místo.
+                const labels = [];
+                const seenLabels = new Set();
                 const groups = {};
                 rawData.forEach((item) => {
                     // Použijeme Metric (key) k odlišení DS1 a DS2
@@ -65,11 +72,16 @@
 
                     // Přidáme bod, pokud pro tento čas už neexistuje (deduplikace vteřiny)
                     const timeStr = item.timestamp.substring(11, 19);
+                    if (!seenLabels.has(timeStr)) {
+                        seenLabels.add(timeStr);
+                        labels.push(timeStr);
+                    }
                     if (!groups[label].data.find((p) => p.x === timeStr)) {
                         groups[label].data.push({ x: timeStr, y: item.value });
                     }
                 });
 
+                myChart.data.labels = labels;
                 myChart.data.datasets = Object.values(groups);
                 myChart.update("none");
                 document.getElementById("status").innerText =
