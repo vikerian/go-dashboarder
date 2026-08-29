@@ -1,9 +1,13 @@
 # go-dashboarder
 
-A small home-IoT/telemetry dashboard, written in Go as a rewrite of an earlier
-project, built as a realistic personal/learning project rather than a
-from-scratch toy. It ingests sensor and weather data over MQTT, normalizes
-it, stores it in TimescaleDB, and serves a live dashboard over HTTP.
+*Čeština: [README.cz.md](README.cz.md)*
+
+A small home-IoT/telemetry dashboard, written in Go from scratch as a
+personal/learning project - not a synthetic toy, it runs against a real
+setup (real sensors, real weather data). It's a rewrite of an earlier
+version, done for better visibility and readability. It ingests sensor and
+weather data over MQTT, normalizes it, stores it in TimescaleDB, and serves
+a live dashboard over HTTP.
 
 ## Architecture
 
