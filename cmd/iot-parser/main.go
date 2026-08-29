@@ -57,23 +57,31 @@ func main() {
 	defer cancel()
 	client.StartHeartbeat(ctx, 30*time.Second)
 
-	// 4. ODBĚR DAT - Používáme přímo MqttClient, abychom viděli Topic
-	token := client.MqttClient.Subscribe("input/#", 1, func(c paho.Client, m paho.Message) {
-		// 4a. Rozbalíme naši obálku RawMessage
-		var msg domain.RawMessage
-		if err := json.Unmarshal(m.Payload(), &msg); err != nil {
-			slog.Error("Failed to unmarshal RawMessage", "topic", m.Topic(), "error", err)
-			return
-		}
+	// 4. ODBĚR DAT
+	token := client.Subscribe("input/#", 1, func(c paho.Client, m paho.Message) {
+		// Zpracování musí běžet mimo callback: parseAndForward dál volá
+		// Publish(...).Wait() na TOMTÉŽ klientovi, jehož čtecí smyčka tenhle
+		// callback právě vyvolala - synchronní čekání na PUBACK by ji zaseklo
+		// (paho.mqtt.golang callback nesmí blokovat).
+		payload := m.Payload()
+		topic := m.Topic()
+		go func() {
+			// 4a. Rozbalíme naši obálku RawMessage
+			var msg domain.RawMessage
+			if err := json.Unmarshal(payload, &msg); err != nil {
+				slog.Error("Failed to unmarshal RawMessage", "topic", topic, "error", err)
+				return
+			}
 
-		// 4b. Ruční verifikace HMAC (protože nepoužíváme wrapper)
-		//if !domain.VerifyHMAC(msg.Payload, msg.Checksum, cfg.SecretKey) {
-		//	slog.Error("HMAC verification failed! Message tampered or wrong key.", "id", msg.ID)
-		//	return
-		//}
+			// 4b. Ruční verifikace HMAC (protože nepoužíváme wrapper)
+			//if !domain.VerifyHMAC(msg.Payload, msg.Checksum, cfg.SecretKey) {
+			//	slog.Error("HMAC verification failed! Message tampered or wrong key.", "id", msg.ID)
+			//	return
+			//}
 
-		// 4c. Samotné parsování s ohledem na Topic
-		parseAndForward(client, msg, m.Topic())
+			// 4c. Samotné parsování s ohledem na Topic
+			parseAndForward(client, msg, topic)
+		}()
 	})
 
 	if token.Wait() && token.Error() != nil {

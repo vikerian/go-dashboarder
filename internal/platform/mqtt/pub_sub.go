@@ -25,7 +25,7 @@ func (c *Client) PublishRawMessage(topic string, msg domain.RawMessage) error {
 
 // SubscribeRawMessage přijme zprávu a ověří HMAC.
 func (c *Client) SubscribeRawMessage(topic string, handler func(domain.RawMessage)) error {
-	token := c.MqttClient.Subscribe(topic, 1, func(client mqtt.Client, m mqtt.Message) {
+	token := c.Subscribe(topic, 1, func(client mqtt.Client, m mqtt.Message) {
 		var msg domain.RawMessage
 		if err := json.Unmarshal(m.Payload(), &msg); err != nil {
 			slog.Error("Failed to unmarshal RawMessage", "error", err)

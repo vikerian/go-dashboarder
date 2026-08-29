@@ -59,7 +59,7 @@ func main() {
 	client.StartHeartbeat(ctx, 30*time.Second)
 
 	// Odebíráme vše z input/web/#
-	client.MqttClient.Subscribe("input/web/#", 1, func(c paho.Client, m paho.Message) {
+	client.Subscribe("input/web/#", 1, func(c paho.Client, m paho.Message) {
 		var raw domain.RawMessage
 		if err := json.Unmarshal(m.Payload(), &raw); err != nil {
 			return

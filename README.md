@@ -111,12 +111,14 @@ service), all the app services above, and Caddy on `:3800`.
 Ports (see `.env.example` to change): frontend+api via Caddy on `3800`,
 `api` directly on `8080`, `frontend` directly on `8180`, Postgres on `5433`
 (kept off the default `5432` since that's commonly already in use),
-Mosquitto on `1884`, Valkey on `6380`.
+Mosquitto on `1883`, Valkey on `6380`.
 
-`mqtt-inputer` additionally bridges in an external DS18B20 sensor feed
-(`/msh/internal_temp/ds1`/`ds2`) from a different MQTT broker reachable via
-`host.docker.internal` — see `SOURCE_MQTT_URL`/`SOURCE_MQTT_TOPIC` below if
-you don't have that source and want to disable it.
+`mqtt-inputer` additionally bridges in the DS18B20 sensor feed
+(`/msh/internal_temp/ds1`/`ds2`) published by a device on the LAN straight
+into this same Mosquitto broker — see `SOURCE_MQTT_URL`/`SOURCE_MQTT_TOPIC`
+below if you don't have that source and want to disable it. All services
+this project needs, including that broker, live in this `docker-compose.yaml`
+— there's no dependency on any other project's stack.
 
 ### Configuration (`.env`)
 

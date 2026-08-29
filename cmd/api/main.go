@@ -53,7 +53,7 @@ func main() {
 			mqttClient.StartHeartbeat(ctx, 30*time.Second)
 
 			// REGISTRACE ODBĚRU
-			token := mqttClient.MqttClient.Subscribe("status/#", 1, func(c paho.Client, m paho.Message) {
+			token := mqttClient.Subscribe("status/#", 1, func(c paho.Client, m paho.Message) {
 				comp := strings.TrimPrefix(m.Topic(), "status/")
 				payload := string(m.Payload())
 

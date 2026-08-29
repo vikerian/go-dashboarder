@@ -93,10 +93,6 @@ services:
             - SOURCE_MQTT_CLIENT_ID=mqtt-inputer-input
             - SOURCE_TOPIC=${SOURCE_MQTT_TOPIC}
             - SECRET_KEY=${SECRET_KEY}
-        # Zdrojový /msh/internal_temp senzor publikuje na broker "mqtt" z
-        # ../_rust/dashboarder (jiný host proces), ne na náš interní mqtt_broker.
-        extra_hosts:
-            - "host.docker.internal:host-gateway"
         depends_on:
             mqtt_broker:
                 condition: service_healthy

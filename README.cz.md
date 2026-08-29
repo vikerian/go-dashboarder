@@ -111,12 +111,14 @@ všechny appkové služby výše a Caddy na `:3800`.
 Porty (změna přes `.env.example`): frontend+api přes Caddy na `3800`, `api`
 přímo na `8080`, `frontend` přímo na `8180`, Postgres na `5433` (schválně
 mimo výchozích `5432`, protože ten bývá běžně obsazený), Mosquitto na
-`1884`, Valkey na `6380`.
+`1883`, Valkey na `6380`.
 
-`mqtt-inputer` navíc přemosťuje externí feed z DS18B20 čidel
-(`/msh/internal_temp/ds1`/`ds2`) z jiného MQTT brokeru dostupného přes
-`host.docker.internal` - pokud tenhle zdroj nemáš a chceš ho vypnout, viz
-`SOURCE_MQTT_URL`/`SOURCE_MQTT_TOPIC` níže.
+`mqtt-inputer` navíc přemosťuje feed z DS18B20 čidel
+(`/msh/internal_temp/ds1`/`ds2`), který publikuje zařízení v LAN přímo do
+tohohle stejného Mosquitto brokeru - pokud tenhle zdroj nemáš a chceš ho
+vypnout, viz `SOURCE_MQTT_URL`/`SOURCE_MQTT_TOPIC` níže. Všechny služby,
+které tenhle projekt potřebuje, včetně toho brokeru, jsou v tomhle
+`docker-compose.yaml` - žádná závislost na stacku jiného projektu.
 
 ### Konfigurace (`.env`)
 

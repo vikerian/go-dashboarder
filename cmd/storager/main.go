@@ -59,7 +59,7 @@ func main() {
 
 	// 4. Odebírání dat
 	// Přístup k MqttClient (což je surový Paho klient) vyžaduje typy z paho
-	client.MqttClient.Subscribe("/data/iot/#", 1, func(c paho.Client, m paho.Message) {
+	client.Subscribe("/data/iot/#", 1, func(c paho.Client, m paho.Message) {
 		var data domain.IoTData
 		if err := json.Unmarshal(m.Payload(), &data); err != nil {
 			slog.Error("Failed to unmarshal IoT data", "err", err)
@@ -68,7 +68,7 @@ func main() {
 		db.SaveIoT(context.Background(), data)
 	})
 
-	client.MqttClient.Subscribe("/data/web/#", 1, func(c paho.Client, m paho.Message) {
+	client.Subscribe("/data/web/#", 1, func(c paho.Client, m paho.Message) {
 		var data domain.WebData
 		if err := json.Unmarshal(m.Payload(), &data); err != nil {
 			slog.Error("Failed to unmarshal Web data", "err", err)
