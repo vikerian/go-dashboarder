@@ -111,8 +111,27 @@ Mosquitto on `1884`, Valkey on `6380`.
 
 `mqtt-inputer` additionally bridges in an external DS18B20 sensor feed
 (`/msh/internal_temp/ds1`/`ds2`) from a different MQTT broker reachable via
-`host.docker.internal` — see `SOURCE_MQTT_URL`/`SOURCE_MQTT_TOPIC` in
-`.env.example` if you don't have that source and want to disable it.
+`host.docker.internal` — see `SOURCE_MQTT_URL`/`SOURCE_MQTT_TOPIC` below if
+you don't have that source and want to disable it.
+
+### Configuration (`.env`)
+
+`.env` is where all secrets and per-environment values live; it's gitignored
+and must never be committed. `.env.example` is the checked-in, secret-free
+template — copy it to `.env` and fill in real values. Anything not
+overridden by an actual environment variable falls back to what's in
+`.env.example`/`docker-compose.yaml`.
+
+| Variable | Used by | Meaning |
+|---|---|---|
+| `MQTT_PORT` | `mqtt_broker` (host port) | Host-side port for the internal Mosquitto broker (container always listens on `1883`) |
+| `MQTT_BROKER_URL` | all app services | Internal broker address app services connect to, e.g. `tcp://mqtt_broker:1883` |
+| `DB_USER` / `DB_PASSWORD` / `DB_NAME` | `timescale`, `api`, `storager` | Postgres role/database. Only takes effect on TimescaleDB's *first* boot against an empty data directory - changing it later requires a fresh `/srv/go-dashboarder/pgsql-data` |
+| `VALKEY_PORT` / `VALKEY_PASSWORD` | `valkey` (host port) | Host-side port and auth password for Valkey (provisioned, not yet used by any service) |
+| `SOURCE_MQTT_URL` | `mqtt-inputer` | Address of the *external* broker to bridge from (not the internal one) |
+| `SOURCE_MQTT_TOPIC` | `mqtt-inputer` | Topic (wildcards ok, e.g. `/msh/internal_temp/#`) to subscribe to on that external broker |
+| `SECRET_KEY` | all app services | Shared HMAC key for signing/verifying messages between ingesters and parsers - must be identical everywhere |
+| `LOG_LEVEL` | most services | Default log verbosity (`debug`/`info`/`warn`/...) |
 
 ### Building standalone binaries (e.g. for FreeBSD)
 
