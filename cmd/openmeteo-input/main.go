@@ -17,7 +17,7 @@ import (
 
 func main() {
 	// 1. Načtení konfigurace (používá tvůj oblíbený env/v10)
-	cfg, err := config.LoadConfig[config.BaseConfig]("configs/weather.yaml")
+	cfg, err := config.LoadConfig[config.WeatherIngesterConfig]("configs/weather.yaml")
 	if err != nil {
 		slog.Error("Chyba konfigurace", "err", err)
 		os.Exit(1)
@@ -48,6 +48,10 @@ func main() {
 		"component", cfg.ComponentName,
 		"id", cfg.MQTT.ClientID)
 
+	// 3b. HTTP endpoint pro ruční vynucení obnovy (bez čekání na 15min tick) -
+	// hodí se pro demo/ladění, kdy chceš vidět čerstvý bod hned.
+	startRefreshServer(cfg.RefreshListenPort, mqttClient)
+
 	// 4. Hlavní smyčka pro čerpání počasí
 	ticker := time.NewTicker(15 * time.Minute)
 	defer ticker.Stop()
@@ -65,14 +69,43 @@ func main() {
 	}
 }
 
-func fetchAndPublish(client *mqtt.Client) {
+// startRefreshServer spustí malý HTTP server s POST /refresh, který spustí
+// fetchAndPublish okamžitě, mimo pravidelný 15minutový ticker.
+func startRefreshServer(port int, client *mqtt.Client) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/refresh", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "use POST", http.StatusMethodNotAllowed)
+			return
+		}
+
+		temp, err := fetchAndPublish(client)
+		w.Header().Set("Content-Type", "application/json")
+		if err != nil {
+			w.WriteHeader(http.StatusBadGateway)
+			json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+			return
+		}
+		json.NewEncoder(w).Encode(map[string]any{"status": "ok", "temperature": temp})
+	})
+
+	addr := fmt.Sprintf(":%d", port)
+	go func() {
+		if err := http.ListenAndServe(addr, mux); err != nil {
+			slog.Error("Refresh HTTP server failed", "err", err)
+		}
+	}()
+	slog.Info("Manual refresh endpoint listening", "addr", addr)
+}
+
+func fetchAndPublish(client *mqtt.Client) (float64, error) {
 	// Příklad URL pro Prahu (zjednodušeno pro Open-Meteo)
 	url := "https://api.open-meteo.com/v1/forecast?latitude=50.0755&longitude=14.4378&current_weather=true"
 
 	resp, err := http.Get(url)
 	if err != nil {
 		slog.Error("API fetch failed", "err", err)
-		return
+		return 0, err
 	}
 	defer resp.Body.Close()
 
@@ -84,7 +117,7 @@ func fetchAndPublish(client *mqtt.Client) {
 
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 		slog.Error("JSON decode failed", "err", err)
-		return
+		return 0, err
 	}
 
 	// Příprava dat pro náš systém
@@ -107,4 +140,5 @@ func fetchAndPublish(client *mqtt.Client) {
 	token.Wait()
 
 	slog.Info("Open-Meteo data successfully ingested", "temp", result.CurrentWeather.Temperature)
+	return result.CurrentWeather.Temperature, nil
 }

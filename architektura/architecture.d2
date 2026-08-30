@@ -1,0 +1,67 @@
+vars: {
+  d2-config: {
+    layout-engine: elk
+  }
+}
+
+direction: down
+
+external: "Vnější zdroje" {
+  sensor: "DS18B20 čidlo\n(ds1, ds2 na LAN)"
+  openmeteo: "Open-Meteo API"
+}
+
+mqtt_broker: "mqtt_broker\n(Mosquitto)" {
+  shape: hexagon
+}
+
+ingest: "Ingest" {
+  mqtt-inputer: "mqtt-inputer\n(bridge + HMAC obálka)"
+  raw-ingester: "raw-ingester\n(TCP :6000)"
+  weather-ingester: "weather-ingester\n(openmeteo-input)"
+}
+
+parse: "Parsery" {
+  iot-parser: "iot-parser"
+  web-parser: "web-parser"
+}
+
+storager: "storager"
+
+storage: "Storage" {
+  timescale: "TimescaleDB"
+  valkey: "Valkey\n(zatím nevyužito)"
+}
+
+serve: "Prezentace" {
+  api: "api\n(:8080)"
+  frontend: "frontend\n(:8180)"
+  caddy: "caddy\n(:3800)"
+}
+
+# --- Toky dat ---
+
+external.sensor -> mqtt_broker: "/msh/internal_temp/#"
+external.openmeteo -> ingest.weather-ingester: "HTTP fetch"
+
+mqtt_broker -> ingest.mqtt-inputer: "subscribe zdroj"
+ingest.mqtt-inputer -> mqtt_broker: "input/mqtt/#"
+
+ingest.raw-ingester -> mqtt_broker: "input/#"
+ingest.weather-ingester -> mqtt_broker: "/data/iot/weather\n(už normalizované)"
+
+mqtt_broker -> parse.iot-parser: "input/#"
+parse.iot-parser -> mqtt_broker: "/data/iot/#"
+
+mqtt_broker -> parse.web-parser: "input/web/#"
+parse.web-parser -> mqtt_broker: "/data/web/#"
+
+mqtt_broker -> storager: "/data/iot/#\n/data/web/#"
+storager -> storage.timescale: "INSERT events"
+
+serve.api -> storage.timescale: "SELECT"
+mqtt_broker -> serve.api: "status/# (health)"
+
+serve.caddy -> serve.frontend
+serve.caddy -> serve.api
+serve.frontend -> serve.api: "fetch /api/v1/latest"

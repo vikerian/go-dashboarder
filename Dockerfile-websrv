@@ -29,6 +29,10 @@ COPY --from=builder /app/frontend-server .
 # Kopírujeme celý obsah lokální složky web/templates do kontejneru
 COPY web/templates/ /app/web/templates/
 
+# Diagram architektury (vygenerovaný z architektura/architecture.d2) pro
+# stránku /architecture
+COPY architektura/architecture.svg web/static/architecture.svg
+
 # Exponujeme port 8180
 EXPOSE 8180
 CMD ["./frontend-server"]

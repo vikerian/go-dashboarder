@@ -109,6 +109,9 @@ services:
             - MQTT_CLIENT_ID=weather-ingester-docker
             - MQTT_URL=${MQTT_BROKER_URL}
             - SECRET_KEY=${SECRET_KEY}
+            - WEATHER_REFRESH_PORT=6100
+        ports:
+            - "${WEATHER_REFRESH_PORT}:6100"
         depends_on:
             mqtt_broker:
                 condition: service_healthy

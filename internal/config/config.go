@@ -34,8 +34,8 @@ func LoadConfig[T any](path string) (*T, error) {
 	// Vytvoříme novou instanci typu T
 	cfg := new(T)
 
-	// 1. Krok: Zkusíme načíst YAML soubor (pokud existuje)
-	// YAML je skvělý pro výchozí hodnoty a lokální vývoj.
+	// Zkusíme načíst YAML soubor (pokud existuje)
+
 	if _, err := os.Stat(path); err == nil {
 		file, err := os.Open(path)
 		if err != nil {
@@ -48,7 +48,7 @@ func LoadConfig[T any](path string) (*T, error) {
 		}
 	}
 
-	// 2. Krok: Přepíšeme hodnoty z Environment Variables.
+	// Přepíšeme hodnoty z Environment Variables.
 	// V Dockeru/Kubernetes je toto klíčové. ENV má vždy přednost před souborem.
 	// Knihovna 'env' projde strukturu a hledá tagy `env:"..."`.
 	if err := env.Parse(cfg); err != nil {

@@ -33,6 +33,15 @@ type OpenWeatherConfig struct {
 	Interval int     `yaml:"interval_minutes" env:"OWM_INTERVAL" envDefault:"15"`
 }
 
+// WeatherIngesterConfig rozšiřuje BaseConfig o port pro ruční vynucení
+// obnovy dat (viz cmd/openmeteo-input) - normálně se stahuje jen jednou za
+// 15 minut, tohle je pro demo/ladění, kdy chceš čerstvý bod hned.
+type WeatherIngesterConfig struct {
+	BaseConfig `yaml:",inline"`
+
+	RefreshListenPort int `yaml:"refresh_listen_port" env:"WEATHER_REFRESH_PORT" envDefault:"6100"`
+}
+
 // WebScraperConfig pro tvůj scraper
 type WebScraperConfig struct {
 	BaseConfig `yaml:",inline"`
